@@ -1,8 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
@@ -10,4 +5,195 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+}
+
+enum Role {
+  RECRUITER
+  ADMIN
+}
+
+enum PositionStatus {
+  DRAFT
+  OPEN
+  CLOSED
+  ARCHIVED
+}
+
+enum ApplicationStatus {
+  ACTIVE
+  HIRED
+  REJECTED
+  WITHDRAWN
+}
+
+enum RoundType {
+  FORM
+  TEST
+  ASSESSMENT
+  INTERVIEW
+  MANUAL
+}
+
+enum RoundStatus {
+  PENDING
+  IN_PROGRESS
+  PASSED
+  FAILED
+  SKIPPED
+}
+
+// Stores platform users (recruiters and administrators) authenticated via OAuth.
+model User {
+  id           String  @id @default(uuid())
+  name         String
+  email        String  @unique
+  avatarUrl    String?
+  passwordHash String?
+  role         Role    @default(RECRUITER)
+
+  // all the position created by that user, usually recruiter
+  positions Position[] @relation("PositionCreator")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Represents an open job position with announcement details and linked rounds.
+model Position {
+  id          String         @id @default(uuid())
+  title       String
+  description String?
+  status      PositionStatus @default(DRAFT)
+
+  // Announcement details
+  googleFormUrl       String?
+  announcementSubject String?
+  announcementBody    String?
+
+  creatorId String
+  creator   User   @relation("PositionCreator", fields: [creatorId], references: [id], onDelete: Restrict)
+
+  rounds       HiringRound[]
+  applications Application[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([creatorId, status])
+}
+
+// Stores candidate profiles uniquely identified by their normalized email address.
+model Candidate {
+  id    String  @id @default(uuid())
+  name  String
+  email String  @unique
+  phone String?
+
+  applications Application[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Tracks a candidate's application to a position, including raw responses and portal tracking token.
+model Application {
+  id String @id @default(uuid())
+
+  positionId String
+  position   Position @relation(fields: [positionId], references: [id], onDelete: Restrict)
+
+  candidateId String
+  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Restrict)
+
+  status ApplicationStatus @default(ACTIVE)
+
+  // Secure candidate portal tracking
+  trackingTokenHash String @unique
+
+  // Source form & resume data
+  source           String?  @default("GOOGLE_FORMS")
+  sourceResponseId String?
+  appliedAt        DateTime @default(now())
+  rawAnswers       Json?
+  resumeUrl        String?
+
+  // Advisory AI Resume Ranking
+  aiScore      Int?
+  aiEvaluation Json?
+
+  roundResults RoundParticipation[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([positionId, candidateId])
+  @@index([positionId, status])
+  @@index([candidateId])
+  @@index([trackingTokenHash])
+}
+
+// Defines an ordered step in the position's evaluation pipeline (Form, Test, Assessment, Interview).
+model HiringRound {
+  id String @id @default(uuid())
+
+  positionId String
+  position   Position @relation(fields: [positionId], references: [id], onDelete: Cascade)
+
+  title        String
+  type         RoundType
+  order        Int
+  instructions String?
+
+  // Venue, Google Form link, or deadline
+  externalUrl String?
+  config      Json?
+
+  isRequired  Boolean   @default(true)
+  publishedAt DateTime?
+
+  results RoundParticipation[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([positionId, order])
+  @@index([positionId, publishedAt])
+}
+
+// Records candidate submissions, scores, interview schedules, and published decisions for a round.
+model RoundParticipation {
+  id String @id @default(uuid())
+
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  roundId String
+  round   HiringRound @relation(fields: [roundId], references: [id], onDelete: Cascade)
+
+  status RoundStatus @default(PENDING)
+
+  // Candidate submission or recruiter score
+  submissionData Json?
+  score          Float?
+  recruiterNotes String?
+
+  // Publishing control (Candidate only sees result when true)
+  isPublished Boolean   @default(false)
+  publishedAt DateTime?
+
+  // Interview specific fields
+  scheduledAt DateTime?
+  endsAt      DateTime?
+  timeZone    String?
+  meetingUrl  String?
+
+  decisionAt  DateTime?
+  completedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([applicationId, roundId])
+  @@index([roundId, status])
+  @@index([applicationId, status])
 }

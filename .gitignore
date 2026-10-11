@@ -108,3 +108,5 @@ Desktop.ini
 .claude/
 .windsurf/
 skills-lock.json
+
+*.md

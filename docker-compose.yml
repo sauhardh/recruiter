@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: recruiter-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: recruiter
+      POSTGRES_PASSWORD: dev_password
+      POSTGRES_DB: recruiter
+    ports:
+      - "5432:5432"
+    volumes:
+      - recruiter_pgdata:/var/lib/postgresql/data
+
+volumes:
+  recruiter_pgdata:
