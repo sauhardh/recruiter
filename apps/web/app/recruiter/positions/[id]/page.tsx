@@ -261,6 +261,178 @@ function WrittenTestSetupCard({
   );
 }
 
+function AssessmentSetupCard({
+  round,
+  positionId,
+  onRoundUpdated,
+}: {
+  round: HiringRound;
+  positionId: string;
+  onRoundUpdated: (updated: HiringRound) => void;
+}) {
+  const config = (round.config || {}) as {
+    description?: string;
+    isPublished?: boolean;
+    publishedAt?: string;
+  };
+
+  const [description, setDescription] = useState(
+    config.description || round.instructions || "",
+  );
+  const isPublished = Boolean(config.isPublished) || Boolean(round.publishedAt);
+
+  const [saving, setSaving] = useState(false);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    const cfg = (round.config || {}) as {
+      description?: string;
+    };
+    setDescription(cfg.description || round.instructions || "");
+  }, [round.id, round.config, round.instructions]);
+
+  const handleSave = async (publish: boolean) => {
+    setSaving(true);
+    setSuccessMsg(null);
+    setErrorMsg(null);
+    try {
+      const res = await apiFetch<{ round: HiringRound; message: string }>(
+        `/api/positions/${positionId}/rounds/${round.id}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({
+            description: description.trim() || null,
+            isPublished: publish,
+          }),
+        },
+      );
+      onRoundUpdated(res.round);
+      setSuccessMsg(
+        publish
+          ? "✓ Published! Candidates can now view the assessment brief and submit their work."
+          : "✓ Draft saved. Brief is hidden from candidates until published.",
+      );
+      setTimeout(() => setSuccessMsg(null), 5000);
+    } catch (err: unknown) {
+      setErrorMsg(
+        err instanceof Error ? err.message : "Failed to update assessment details",
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="rounded-[20px] border border-[#C5D1FA] bg-white p-5 sm:p-6 shadow-xs space-y-4">
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#EDEDE8] pb-3">
+        <div className="flex items-center gap-2.5">
+          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#EEF2FF] text-[#2F4BFF]">
+            <svg
+              className="h-4.5 w-4.5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714a2.25 2.25 0 001.357 2.059l.97.484c.69.345 1.173 1.024 1.173 1.8V21l-4.5-1.5-4.5 1.5V17.58m9-13.476c.251.023.501.05.75.082M9.75 3.104A24.3 24.3 0 005.25 3.82c-.386.034-.77.073-1.15.117M9.75 3.104A24.3 24.3 0 0114.25 3.82c.386.034.77.073 1.15.117"
+              />
+            </svg>
+          </span>
+          <div>
+            <h4 className="font-semibold text-sm text-[#101010]">
+              Practical Assessment Setup
+            </h4>
+            <p className="text-xs text-[#5C5C57]">
+              Write an assessment brief for candidates. They will submit their GitHub link and other work links after reviewing it.
+            </p>
+          </div>
+        </div>
+
+        {/* Publication Status Pill */}
+        <span
+          className={`rounded-full px-3 py-1 text-xs font-semibold ${
+            isPublished
+              ? "bg-[#E6F4EA] text-[#1B6B3A] border border-[#A8DBB5]"
+              : "bg-[#F1F1EC] text-[#5C5C57] border border-[#E3E3DD]"
+          }`}
+        >
+          {isPublished ? "● Published to Candidates" : "○ Draft (Unpublished)"}
+        </span>
+      </div>
+
+      {successMsg && (
+        <div className="rounded-xl border border-[#A8DBB5] bg-[#E6F4EA] px-3.5 py-2 text-xs font-medium text-[#1B6B3A]">
+          {successMsg}
+        </div>
+      )}
+
+      {errorMsg && (
+        <div className="rounded-xl border border-[#F2C4BF] bg-[#FCE9E7] px-3.5 py-2 text-xs font-medium text-[#A8281E]">
+          {errorMsg}
+        </div>
+      )}
+
+      {/* Assessment Description */}
+      <div className="space-y-1.5">
+        <label className="block text-xs font-medium text-[#5C5C57]">
+          Assessment Brief / Description{" "}
+          <span className="text-[#A8281E]">*</span>
+        </label>
+        <textarea
+          rows={6}
+          placeholder="Describe the practical assessment task in detail. Include: what the candidate must build/do, any constraints or requirements, evaluation criteria, expected deliverables (e.g. GitHub repo, live demo link), and the deadline if applicable."
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          className="w-full rounded-xl border border-[#CFCFC8] bg-white p-3 text-xs text-[#101010] placeholder-[#8A8A84] focus:border-[#101010] focus:outline-none leading-relaxed"
+        />
+        <p className="text-[11px] text-[#8A8A84]">
+          Candidates will see this brief and be asked to submit a GitHub link and optional other link (demo, portfolio, etc.).
+        </p>
+      </div>
+
+      {/* Buttons */}
+      <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-[#EDEDE8]">
+        <p className="text-[11px] text-[#8A8A84]">
+          Candidates in this stage will see the brief and the submission form once published.
+        </p>
+
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            disabled={saving}
+            onClick={() => handleSave(false)}
+            className="min-h-8 cursor-pointer rounded-full border border-[#CFCFC8] bg-white px-4 text-xs font-medium text-[#5C5C57] transition-colors hover:border-[#101010] hover:text-[#101010] disabled:opacity-50"
+          >
+            {saving ? "Saving..." : "Save Draft"}
+          </button>
+
+          <button
+            type="button"
+            disabled={saving}
+            onClick={() => handleSave(!isPublished)}
+            className={`min-h-8 cursor-pointer rounded-full px-4 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50 ${
+              isPublished
+                ? "bg-[#A8281E]"
+                : "bg-[#2F4BFF]"
+            }`}
+          >
+            {saving
+              ? "Saving..."
+              : isPublished
+                ? "Unpublish Brief"
+                : "Publish to Candidates"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PositionDetailContent() {
   const params = useParams();
   const searchParams = useSearchParams();
@@ -1061,6 +1233,25 @@ function PositionDetailContent() {
                       />
                     )}
 
+                  {/* Practical Assessment Setup */}
+                  {round && round.type === "ASSESSMENT" && (
+                    <AssessmentSetupCard
+                      round={round}
+                      positionId={position.id}
+                      onRoundUpdated={(updatedRound) => {
+                        setPosition((prev) => {
+                          if (!prev) return prev;
+                          return {
+                            ...prev,
+                            rounds: (prev.rounds || []).map((r) =>
+                              r.id === updatedRound.id ? updatedRound : r,
+                            ),
+                          };
+                        });
+                      }}
+                    />
+                  )}
+
                   {stageApplicants.length === 0 ? (
                     <div className="rounded-xl border border-dashed border-[#CFCFC8] bg-white/60 p-8 text-center text-xs text-[#8A8A84]">
                       No candidates currently in this stage.
@@ -1178,6 +1369,63 @@ function PositionDetailContent() {
                                 {rawAnswers.description}
                               </div>
                             )}
+
+                            {/* Assessment submission links (shown for ASSESSMENT rounds) */}
+                            {round?.type === "ASSESSMENT" && (() => {
+                              const roundResult = (app.roundResults || []).find(
+                                (r) => r.roundId === round.id,
+                              );
+                              const sub = roundResult?.submissionData as
+                                | { githubUrl?: string | null; otherUrl?: string | null; submittedAt?: string | null }
+                                | null
+                                | undefined;
+                              if (!sub?.githubUrl && !sub?.otherUrl) return null;
+                              return (
+                                <div className="mt-3 rounded-xl border border-[#C5D1FA] bg-[#EEF2FF]/60 p-3 text-xs space-y-2">
+                                  <p className="font-semibold text-[#2F4BFF]">
+                                    🧪 Candidate Assessment Submission
+                                  </p>
+                                  {sub.githubUrl && (
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-[#5C5C57] min-w-[70px]">GitHub:</span>
+                                      <a
+                                        href={sub.githubUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="font-mono text-[#2F4BFF] hover:underline truncate"
+                                      >
+                                        {sub.githubUrl} ↗
+                                      </a>
+                                    </div>
+                                  )}
+                                  {sub.otherUrl && (
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-[#5C5C57] min-w-[70px]">Other link:</span>
+                                      <a
+                                        href={sub.otherUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="font-mono text-[#2F4BFF] hover:underline truncate"
+                                      >
+                                        {sub.otherUrl} ↗
+                                      </a>
+                                    </div>
+                                  )}
+                                  {sub.submittedAt && (
+                                    <p className="text-[#8A8A84] font-mono text-[11px]">
+                                      Submitted{" "}
+                                      {new Date(sub.submittedAt).toLocaleString("en-US", {
+                                        month: "short",
+                                        day: "numeric",
+                                        hour: "2-digit",
+                                        minute: "2-digit",
+                                      })}
+                                    </p>
+                                  )}
+                                </div>
+                              );
+                            })()}
+
                           </div>
                         );
                       })}

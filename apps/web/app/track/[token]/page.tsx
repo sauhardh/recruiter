@@ -18,6 +18,7 @@ interface TrackingRound {
     location?: string | null;
     mapUrl?: string | null;
     syllabus?: string | null;
+    description?: string | null;
     isPublished?: boolean;
     publishedAt?: string | null;
   } | null;
@@ -37,6 +38,11 @@ interface TrackingRoundResult {
   timeZone?: string | null;
   meetingUrl?: string | null;
   completedAt?: string | null;
+  submissionData?: {
+    githubUrl?: string | null;
+    otherUrl?: string | null;
+    submittedAt?: string | null;
+  } | null;
 }
 
 interface TrackingApplication {
@@ -68,6 +74,65 @@ function TrackingPortalContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+
+  // Assessment submission state keyed by roundId
+  const [assessmentGithub, setAssessmentGithub] = useState<Record<string, string>>({});
+  const [assessmentOther, setAssessmentOther] = useState<Record<string, string>>({});
+  const [assessmentSubmitting, setAssessmentSubmitting] = useState<Record<string, boolean>>({});
+  const [assessmentSuccess, setAssessmentSuccess] = useState<Record<string, boolean>>({});
+  const [assessmentError, setAssessmentError] = useState<Record<string, string | null>>({});
+
+  const handleAssessmentSubmit = async (roundId: string) => {
+    if (!token) return;
+    setAssessmentSubmitting((prev) => ({ ...prev, [roundId]: true }));
+    setAssessmentError((prev) => ({ ...prev, [roundId]: null }));
+    try {
+      const res = await fetch(`${API_BASE}/api/track/${token}/rounds/${roundId}/submit`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          githubUrl: assessmentGithub[roundId]?.trim() || null,
+          otherUrl: assessmentOther[roundId]?.trim() || null,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Submission failed");
+      // Update local round result submissionData
+      setApplication((prev) => {
+        if (!prev) return prev;
+        const submissionData = data.participation?.submissionData || {
+          githubUrl: assessmentGithub[roundId]?.trim() || null,
+          otherUrl: assessmentOther[roundId]?.trim() || null,
+          submittedAt: new Date().toISOString(),
+        };
+        const exists = prev.roundResults.find((r) => r.roundId === roundId);
+        const updatedResults = exists
+          ? prev.roundResults.map((r) =>
+              r.roundId === roundId ? { ...r, submissionData, status: "IN_PROGRESS" as const } : r,
+            )
+          : [
+              ...prev.roundResults,
+              {
+                id: data.participation?.id || roundId,
+                roundId,
+                status: "IN_PROGRESS" as const,
+                score: null,
+                isPublished: false,
+                submissionData,
+              },
+            ];
+        return { ...prev, roundResults: updatedResults };
+      });
+      setAssessmentSuccess((prev) => ({ ...prev, [roundId]: true }));
+    } catch (err: unknown) {
+      setAssessmentError((prev) => ({
+        ...prev,
+        [roundId]: err instanceof Error ? err.message : "Submission failed. Please try again.",
+      }));
+    } finally {
+      setAssessmentSubmitting((prev) => ({ ...prev, [roundId]: false }));
+    }
+  };
 
   useEffect(() => {
     if (!token) return;
@@ -622,6 +687,151 @@ function TrackingPortalContent() {
                           ⏳ Test schedule, physical venue, and syllabus will be published here by the hiring team shortly.
                         </div>
                       )}
+
+                    {/* Practical Assessment: description from recruiter */}
+                    {round.type === "ASSESSMENT" && round.config?.description && (
+                      <div className="mt-4 rounded-xl border border-[#2F4BFF]/30 bg-[#EEF2FF]/60 p-4 text-xs space-y-2">
+                        <span className="font-semibold text-sm text-[#101010] flex items-center gap-1.5">
+                          🧪 Assessment Brief
+                        </span>
+                        <p className="text-xs text-[#101010] whitespace-pre-wrap leading-relaxed">
+                          {round.config.description}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Notice if ASSESSMENT round is current but recruiter hasn't published description yet */}
+                    {isCurrent &&
+                      round.type === "ASSESSMENT" &&
+                      !round.config?.description && (
+                        <div className="mt-3 rounded-xl border border-dashed border-[#CFCFC8] bg-white/70 p-3.5 text-xs text-[#5C5C57]">
+                          ⏳ Assessment brief and instructions will be published here by the hiring team shortly.
+                        </div>
+                      )}
+
+                    {/* Practical Assessment: submission form / submitted state */}
+                    {round.type === "ASSESSMENT" && isCurrent && (
+                      (() => {
+                        const submission = result?.submissionData;
+                        const alreadySubmitted = Boolean(submission?.githubUrl || submission?.otherUrl);
+                        const isSubmitting = Boolean(assessmentSubmitting[round.id]);
+                        const didSucceed = Boolean(assessmentSuccess[round.id]);
+                        const submitErr = assessmentError[round.id];
+
+                        return (
+                          <div className="mt-4 rounded-xl border border-[#E3E3DD] bg-white p-4 space-y-3">
+                            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#EDEDE8] pb-2">
+                              <span className="font-semibold text-sm text-[#101010]">
+                                📤 Submit Your Assessment
+                              </span>
+                              {alreadySubmitted && (
+                                <span className="rounded-full bg-[#E6F4EA] border border-[#A8DBB5] px-2.5 py-0.5 text-[11px] font-semibold text-[#1B6B3A]">
+                                  ✓ Submitted
+                                </span>
+                              )}
+                            </div>
+
+                            {alreadySubmitted && !didSucceed ? (
+                              <div className="space-y-2 text-xs text-[#5C5C57]">
+                                <p className="text-[#1B6B3A] font-medium">
+                                  ✓ Your submission has been received. The recruiter will review it and update your status.
+                                </p>
+                                {submission?.githubUrl && (
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-[#8A8A84]">GitHub:</span>
+                                    <a
+                                      href={submission.githubUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="font-mono text-[#2F4BFF] hover:underline truncate"
+                                    >
+                                      {submission.githubUrl}
+                                    </a>
+                                  </div>
+                                )}
+                                {submission?.otherUrl && (
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-[#8A8A84]">Other link:</span>
+                                    <a
+                                      href={submission.otherUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="font-mono text-[#2F4BFF] hover:underline truncate"
+                                    >
+                                      {submission.otherUrl}
+                                    </a>
+                                  </div>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setAssessmentGithub((p) => ({ ...p, [round.id]: submission?.githubUrl || "" }));
+                                    setAssessmentOther((p) => ({ ...p, [round.id]: submission?.otherUrl || "" }));
+                                    setAssessmentSuccess((p) => ({ ...p, [round.id]: false }));
+                                  }}
+                                  className="mt-1 text-[11px] text-[#5C5C57] underline cursor-pointer"
+                                >
+                                  Update submission
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="space-y-3">
+                                {didSucceed && (
+                                  <div className="rounded-xl border border-[#A8DBB5] bg-[#E6F4EA] px-3 py-2 text-xs font-medium text-[#1B6B3A]">
+                                    ✓ Submitted successfully! The recruiter will review your work.
+                                  </div>
+                                )}
+                                {submitErr && (
+                                  <div className="rounded-xl border border-[#F2C4BF] bg-[#FCE9E7] px-3 py-2 text-xs text-[#A8281E]">
+                                    {submitErr}
+                                  </div>
+                                )}
+                                <div className="space-y-1.5">
+                                  <label className="block text-xs font-medium text-[#5C5C57]">
+                                    GitHub Repository URL
+                                  </label>
+                                  <input
+                                    type="url"
+                                    placeholder="https://github.com/your-username/project"
+                                    value={assessmentGithub[round.id] || ""}
+                                    onChange={(e) =>
+                                      setAssessmentGithub((p) => ({ ...p, [round.id]: e.target.value }))
+                                    }
+                                    className="min-h-9 w-full rounded-xl border border-[#CFCFC8] bg-white px-3 text-xs text-[#101010] placeholder-[#8A8A84] focus:border-[#101010] focus:outline-none"
+                                  />
+                                </div>
+                                <div className="space-y-1.5">
+                                  <label className="block text-xs font-medium text-[#5C5C57]">
+                                    Other Link{" "}
+                                    <span className="text-[#8A8A84] font-normal">(optional — demo, portfolio, video, etc.)</span>
+                                  </label>
+                                  <input
+                                    type="url"
+                                    placeholder="https://your-demo.vercel.app"
+                                    value={assessmentOther[round.id] || ""}
+                                    onChange={(e) =>
+                                      setAssessmentOther((p) => ({ ...p, [round.id]: e.target.value }))
+                                    }
+                                    className="min-h-9 w-full rounded-xl border border-[#CFCFC8] bg-white px-3 text-xs text-[#101010] placeholder-[#8A8A84] focus:border-[#101010] focus:outline-none"
+                                  />
+                                </div>
+                                <button
+                                  type="button"
+                                  disabled={isSubmitting || (!assessmentGithub[round.id]?.trim() && !assessmentOther[round.id]?.trim())}
+                                  onClick={() => handleAssessmentSubmit(round.id)}
+                                  className="w-full min-h-9 cursor-pointer rounded-full bg-[#101010] text-xs font-medium text-white transition-opacity hover:opacity-80 disabled:opacity-40"
+                                >
+                                  {isSubmitting ? "Submitting..." : alreadySubmitted ? "Update Submission" : "Submit Assessment"}
+                                </button>
+                                <p className="text-[11px] text-[#8A8A84]">
+                                  You can update your submission at any time before the recruiter makes a decision.
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()
+                    )}
 
                     {/* External test link if available */}
                     {round.externalUrl && !round.config?.mapUrl && (

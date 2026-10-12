@@ -8,6 +8,7 @@ export interface WrittenTestConfig {
   location?: string | null;
   mapUrl?: string | null;
   syllabus?: string | null;
+  description?: string | null;
   isPublished?: boolean;
   publishedAt?: string | null;
 }
