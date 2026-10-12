@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
-import { apiFetch } from "../../../../lib/api";
+import { apiFetch, API_BASE_URL } from "../../../../lib/api";
 import type { Candidate, ApplicationStatus } from "../../../../lib/types";
 
 const STATUS_STYLES: Record<ApplicationStatus, string> = {
@@ -15,7 +15,25 @@ const STATUS_STYLES: Record<ApplicationStatus, string> = {
 
 function CandidateDetailContent() {
   const params = useParams();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const id = params?.id as string;
+  const from = searchParams?.get("from");
+
+  const backHref = from || "/recruiter/candidates";
+  const backLabel =
+    from && from.includes("/recruiter/positions")
+      ? "Back to position"
+      : from
+        ? "Back"
+        : "Candidates";
+
+  const handleBack = (e: React.MouseEvent) => {
+    if (!from && typeof window !== "undefined" && window.history.length > 1) {
+      e.preventDefault();
+      router.back();
+    }
+  };
 
   const [candidate, setCandidate] = useState<Candidate | null>(null);
   const [loading, setLoading] = useState(true);
@@ -47,7 +65,8 @@ function CandidateDetailContent() {
     return (
       <div className="space-y-6">
         <Link
-          href="/recruiter/candidates"
+          href={backHref}
+          onClick={handleBack}
           className="inline-flex items-center gap-2 font-mono text-[13px] tracking-[0.04em] text-[#5C5C57] transition-colors hover:text-[#101010]"
         >
           <svg
@@ -62,15 +81,18 @@ function CandidateDetailContent() {
           >
             <path d="M19 12H5M12 19l-7-7 7-7" />
           </svg>
-          Back to candidates
+          {backLabel === "Candidates" ? "Back to candidates" : backLabel}
         </Link>
         <div
           role="alert"
           className="rounded-2xl border border-[#F2C4BF] bg-[#FCE9E7] p-6 text-sm text-[#A8281E]"
         >
-          <p className="font-semibold text-base">Candidate not found or unavailable</p>
+          <p className="font-semibold text-base">
+            Candidate not found or unavailable
+          </p>
           <p className="mt-1 text-xs text-[#A8281E]/90">
-            {error || "The requested candidate could not be retrieved from the backend."}
+            {error ||
+              "The requested candidate could not be retrieved from the backend."}
           </p>
         </div>
       </div>
@@ -84,7 +106,8 @@ function CandidateDetailContent() {
       {/* Top Header */}
       <div>
         <Link
-          href="/recruiter/candidates"
+          href={backHref}
+          onClick={handleBack}
           className="inline-flex items-center gap-2 font-mono text-[13px] tracking-[0.04em] text-[#5C5C57] transition-colors hover:text-[#101010]"
         >
           <svg
@@ -99,7 +122,7 @@ function CandidateDetailContent() {
           >
             <path d="M19 12H5M12 19l-7-7 7-7" />
           </svg>
-          Candidates
+          {backLabel}
         </Link>
         <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-4">
@@ -149,7 +172,9 @@ function CandidateDetailContent() {
                   </h3>
                   <p className="mt-1 text-xs text-[#5C5C57]">
                     Applied on{" "}
-                    {new Date(app.appliedAt || app.createdAt).toLocaleDateString("en-US", {
+                    {new Date(
+                      app.appliedAt || app.createdAt,
+                    ).toLocaleDateString("en-US", {
                       month: "long",
                       day: "numeric",
                       year: "numeric",
@@ -166,7 +191,11 @@ function CandidateDetailContent() {
                   </span>
                   {app.resumeUrl && (
                     <a
-                      href={app.resumeUrl}
+                      href={
+                        app.resumeUrl.startsWith("http")
+                          ? app.resumeUrl
+                          : `${API_BASE_URL}${app.resumeUrl.startsWith("/") ? "" : "/"}${app.resumeUrl}`
+                      }
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-[#101010] px-4 text-xs font-medium text-white transition-opacity hover:opacity-85"
@@ -215,26 +244,32 @@ function CandidateDetailContent() {
 
                   {app.aiEvaluation && (
                     <div className="mt-4 grid grid-cols-1 gap-4 border-t border-[#D0DAFF] pt-4 sm:grid-cols-2 text-xs">
-                      {app.aiEvaluation.strengths && app.aiEvaluation.strengths.length > 0 && (
-                        <div>
-                          <p className="font-semibold text-[#1B6B3A]">Key Strengths</p>
-                          <ul className="mt-1 list-disc list-inside space-y-1 text-[#5C5C57]">
-                            {app.aiEvaluation.strengths.map((s, idx) => (
-                              <li key={idx}>{s}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                      {app.aiEvaluation.gaps && app.aiEvaluation.gaps.length > 0 && (
-                        <div>
-                          <p className="font-semibold text-[#A8281E]">Identified Gaps</p>
-                          <ul className="mt-1 list-disc list-inside space-y-1 text-[#5C5C57]">
-                            {app.aiEvaluation.gaps.map((g, idx) => (
-                              <li key={idx}>{g}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
+                      {app.aiEvaluation.strengths &&
+                        app.aiEvaluation.strengths.length > 0 && (
+                          <div>
+                            <p className="font-semibold text-[#1B6B3A]">
+                              Key Strengths
+                            </p>
+                            <ul className="mt-1 list-disc list-inside space-y-1 text-[#5C5C57]">
+                              {app.aiEvaluation.strengths.map((s, idx) => (
+                                <li key={idx}>{s}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      {app.aiEvaluation.gaps &&
+                        app.aiEvaluation.gaps.length > 0 && (
+                          <div>
+                            <p className="font-semibold text-[#A8281E]">
+                              Identified Gaps
+                            </p>
+                            <ul className="mt-1 list-disc list-inside space-y-1 text-[#5C5C57]">
+                              {app.aiEvaluation.gaps.map((g, idx) => (
+                                <li key={idx}>{g}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
                     </div>
                   )}
                 </div>
@@ -247,14 +282,20 @@ function CandidateDetailContent() {
                     Form Responses
                   </h4>
                   <div className="divide-y divide-[#F3F3EF] rounded-xl border border-[#EDEDE8] bg-[#FAFAF8] text-xs">
-                    {Object.entries(app.rawAnswers).map(([question, answer], idx) => (
-                      <div key={idx} className="p-3.5">
-                        <p className="font-mono text-[11px] text-[#8A8A84]">{question}</p>
-                        <p className="mt-1 text-sm text-[#101010]">
-                          {typeof answer === "string" ? answer : JSON.stringify(answer)}
-                        </p>
-                      </div>
-                    ))}
+                    {Object.entries(app.rawAnswers).map(
+                      ([question, answer], idx) => (
+                        <div key={idx} className="p-3.5">
+                          <p className="font-mono text-[11px] text-[#8A8A84]">
+                            {question}
+                          </p>
+                          <p className="mt-1 text-sm text-[#101010]">
+                            {typeof answer === "string"
+                              ? answer
+                              : JSON.stringify(answer)}
+                          </p>
+                        </div>
+                      ),
+                    )}
                   </div>
                 </div>
               )}

@@ -3,6 +3,15 @@ export type ApplicationStatus = "ACTIVE" | "HIRED" | "REJECTED" | "WITHDRAWN";
 export type RoundType = "FORM" | "TEST" | "ASSESSMENT" | "INTERVIEW" | "MANUAL";
 export type RoundStatus = "PENDING" | "IN_PROGRESS" | "PASSED" | "FAILED" | "SKIPPED";
 
+export interface WrittenTestConfig {
+  testDate?: string | null;
+  location?: string | null;
+  mapUrl?: string | null;
+  syllabus?: string | null;
+  isPublished?: boolean;
+  publishedAt?: string | null;
+}
+
 export interface HiringRound {
   id: string;
   positionId: string;
@@ -11,7 +20,7 @@ export interface HiringRound {
   order: number;
   instructions?: string | null;
   externalUrl?: string | null;
-  config?: Record<string, unknown> | null;
+  config?: (Record<string, unknown> & WrittenTestConfig) | null;
   isRequired: boolean;
   publishedAt?: string | null;
 }
