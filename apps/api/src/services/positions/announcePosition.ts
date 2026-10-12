@@ -30,7 +30,9 @@ async function announcePosition(req: Request, res: Response) {
     };
 
     if (!to || (Array.isArray(to) ? to.length === 0 : !to.trim())) {
-      res.status(400).json({ error: "At least one recipient email is required" });
+      res
+        .status(400)
+        .json({ error: "At least one recipient email is required" });
       return;
     }
     if (!subject || !subject.trim()) {
@@ -45,7 +47,10 @@ async function announcePosition(req: Request, res: Response) {
     // Normalise recipients — frontend can send a comma-separated string or array
     const recipients: string[] = Array.isArray(to)
       ? to.map((e) => e.trim()).filter(Boolean)
-      : to.split(",").map((e) => e.trim()).filter(Boolean);
+      : to
+          .split(",")
+          .map((e) => e.trim())
+          .filter(Boolean);
 
     const emailProvider = getEmailProvider();
 
@@ -57,11 +62,17 @@ async function announcePosition(req: Request, res: Response) {
     });
 
     if (!result.success) {
-      res.status(500).json({ error: "Failed to send email", detail: result.error });
+      res
+        .status(500)
+        .json({ error: "Failed to send email", detail: result.error });
       return;
     }
 
-    res.json({ message: "Announcement sent", messageId: result.messageId, recipients });
+    res.json({
+      message: "Announcement sent",
+      messageId: result.messageId,
+      recipients,
+    });
   } catch (error) {
     console.error("Error announcing position:", error);
     res.status(500).json({ error: "Failed to send announcement" });

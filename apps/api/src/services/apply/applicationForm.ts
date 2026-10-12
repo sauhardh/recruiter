@@ -42,7 +42,9 @@ async function submitApplication(req: Request, res: Response) {
     }
 
     if (position.status !== "OPEN") {
-      res.status(400).json({ error: "Applications for this position are currently closed" });
+      res
+        .status(400)
+        .json({ error: "Applications for this position are currently closed" });
       return;
     }
 
@@ -77,7 +79,8 @@ async function submitApplication(req: Request, res: Response) {
 
     if (existingApplication) {
       res.status(409).json({
-        error: "You have already applied to this position. Each candidate can apply once.",
+        error:
+          "You have already applied to this position. Each candidate can apply once.",
       });
       return;
     }
@@ -113,23 +116,101 @@ async function submitApplication(req: Request, res: Response) {
 
     // Generate cryptographically secure tracking token
     const trackingToken = randomBytes(32).toString("hex");
-    const trackingTokenHash = createHash("sha256").update(trackingToken).digest("hex");
+    const trackingTokenHash = createHash("sha256")
+      .update(trackingToken)
+      .digest("hex");
 
-    // Create the application record
-    await prisma.application.create({
-      data: {
-        positionId,
-        candidateId: candidate.id,
-        trackingTokenHash,
-        source: "DIRECT_FORM",
-        resumeUrl,
-        rawAnswers: {
-          name: normalizedName,
-          email: normalizedEmail,
-          phone: phone?.trim() || null,
-          description: description?.trim() || null,
+    // Ensure position has rounds configured, seed defaults if empty
+    let rounds = await prisma.hiringRound.findMany({
+      where: { positionId },
+      orderBy: { order: "asc" },
+    });
+
+    if (rounds.length === 0) {
+      const defaultRounds = [
+        {
+          title: "Application Screening",
+          type: "FORM" as const,
+          order: 1,
+          instructions:
+            "Initial review of candidate responses, background, and submitted resume.",
         },
+        {
+          title: "Written Test / Quiz",
+          type: "TEST" as const,
+          order: 2,
+          instructions: "Evaluation of core concepts and domain expertise.",
+        },
+        {
+          title: "Practical Assessment",
+          type: "ASSESSMENT" as const,
+          order: 3,
+          instructions:
+            "Project or code assessment to evaluate hands-on problem-solving skills.",
+        },
+        {
+          title: "Final Interview",
+          type: "INTERVIEW" as const,
+          order: 4,
+          instructions:
+            "Live discussion and technical interview with the hiring team.",
+        },
+      ];
+
+      await prisma.hiringRound.createMany({
+        data: defaultRounds.map((r) => ({ positionId, ...r })),
+        skipDuplicates: true,
+      });
+
+      rounds = await prisma.hiringRound.findMany({
+        where: { positionId },
+        orderBy: { order: "asc" },
+      });
+    }
+
+    const firstRound = rounds[0];
+
+    const applicationData: {
+      positionId: string;
+      candidateId: string;
+      trackingTokenHash: string;
+      source: string;
+      resumeUrl: string | null;
+      rawAnswers: object;
+      roundResults?: {
+        create: {
+          roundId: string;
+          status: "PENDING";
+        }[];
+      };
+    } = {
+      positionId,
+      candidateId: candidate.id,
+      trackingTokenHash,
+      source: "DIRECT_FORM",
+      resumeUrl,
+      rawAnswers: {
+        name: normalizedName,
+        email: normalizedEmail,
+        phone: phone?.trim() || null,
+        description: description?.trim() || null,
       },
+    };
+
+    if (firstRound) {
+      applicationData.roundResults = {
+        create: [
+          {
+            roundId: firstRound.id,
+            status: "PENDING",
+          },
+        ],
+      };
+    }
+
+    // Create the application record and initial round participation (PENDING review)
+    await prisma.application.create({
+      data: applicationData,
     });
 
     res.status(201).json({

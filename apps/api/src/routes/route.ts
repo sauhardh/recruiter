@@ -21,6 +21,9 @@ import {
   getCandidates,
   getCandidate,
 } from "../services/candidates/getCandidate.js";
+import { getTrackingApplication } from "../services/tracking/getTracking.js";
+import { evaluateCandidate } from "../services/positions/evaluateCandidate.js";
+import { updateRound } from "../services/positions/updateRound.js";
 
 const router: Router = Router();
 
@@ -51,9 +54,16 @@ router.post("/positions", requireAuth, storePositions);
 router.get("/positions/:id", requireAuth, getPostion);
 router.patch("/positions/:id", requireAuth, updatePosition);
 router.post("/positions/:id/announce", requireAuth, announcePosition);
+router.patch("/positions/:positionId/rounds/:roundId", requireAuth, updateRound);
+
+// Candidate evaluation per round
+router.post("/applications/:applicationId/evaluate", requireAuth, evaluateCandidate);
 
 router.get("/apply/:positionId", getApplicationForm);
 router.post("/apply/:positionId", upload.single("resume"), submitApplication);
+
+// Candidate tracking portal
+router.get("/track/:token", getTrackingApplication);
 
 router.get("/candidates", requireAuth, getCandidates);
 router.get("/candidates/:id", requireAuth, getCandidate);

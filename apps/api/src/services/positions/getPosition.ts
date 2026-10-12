@@ -60,6 +60,14 @@ async function getPostion(req: Request, res: Response) {
         applications: {
           include: {
             candidate: true,
+            roundResults: {
+              include: {
+                round: true,
+              },
+              orderBy: {
+                round: { order: "asc" },
+              },
+            },
           },
           orderBy: {
             createdAt: "desc",

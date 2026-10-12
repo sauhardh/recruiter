@@ -11,6 +11,33 @@ async function storePositions(req: Request, res: Response) {
 
     const payload = req.body;
 
+    const defaultRounds = [
+      {
+        title: "Application Screening",
+        type: "FORM" as const,
+        order: 1,
+        instructions: "Initial review of candidate responses, background, and submitted resume.",
+      },
+      {
+        title: "Written Test / Quiz",
+        type: "TEST" as const,
+        order: 2,
+        instructions: "Evaluation of core concepts and domain expertise.",
+      },
+      {
+        title: "Practical Assessment",
+        type: "ASSESSMENT" as const,
+        order: 3,
+        instructions: "Project or code assessment to evaluate hands-on problem-solving skills.",
+      },
+      {
+        title: "Final Interview",
+        type: "INTERVIEW" as const,
+        order: 4,
+        instructions: "Live discussion and technical interview with the hiring team.",
+      },
+    ];
+
     let positions = await prisma.position.create({
       data: {
         title: payload.title.trim(),
@@ -22,6 +49,9 @@ async function storePositions(req: Request, res: Response) {
           connect: {
             id: user.userId,
           },
+        },
+        rounds: {
+          create: defaultRounds,
         },
       },
     });
