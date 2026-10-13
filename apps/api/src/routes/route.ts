@@ -1,10 +1,5 @@
 import { Router } from "express";
-import {
-  initiateGoogleAuth,
-  handleGoogleCallback,
-  getCurrentUser,
-  logoutUser,
-} from "./auth.js";
+import { authController } from "../services/auth/authController.js";
 import { requireAuth } from "../middlewares/auth.js";
 import { getPositions, getPostion } from "../services/positions/getPosition.js";
 import {
@@ -28,10 +23,11 @@ import { upload } from "../lib/utils.js";
 
 const router: Router = Router();
 
-router.get("/auth/google", initiateGoogleAuth);
-router.get("/auth/google/callback", handleGoogleCallback);
-router.get("/auth/me", requireAuth, getCurrentUser);
-router.post("/auth/logout", logoutUser);
+// Checks to maintain the session, based on cookies
+router.get("/auth/me", requireAuth, authController.getCurrentUser);
+router.get("/auth/google", authController.initiateGoogleAuth);
+router.get("/auth/google/callback", authController.handleGoogleCallback);
+router.post("/auth/logout", authController.logoutUser);
 
 router.get("/positions", requireAuth, getPositions);
 router.post("/positions", requireAuth, storePositions);
