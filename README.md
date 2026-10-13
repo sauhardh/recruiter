@@ -250,77 +250,42 @@ The base URL of the API **as seen from the browser** (not inside Docker):
 
 ### System Architecture
 
-### System Architecture
-
 ```mermaid
 flowchart LR
-    %% Styles & Shapes
-    classDef client fill:#1e293b,stroke:#38bdf8,stroke-width:2px,color:#f8fafc;
-    classDef frontend fill:#0f172a,stroke:#818cf8,stroke-width:2px,color:#f8fafc;
-    classDef service fill:#111827,stroke:#34d399,stroke-width:2px,color:#f8fafc;
-    classDef database fill:#1e1b4b,stroke:#a78bfa,stroke-width:2px,color:#f8fafc;
-    classDef external fill:#312e81,stroke:#f472b6,stroke-width:2px,stroke-dasharray: 4 4,color:#f8fafc;
-    classDef storage fill:#1e293b,stroke:#fbbf24,stroke-width:2px,color:#f8fafc;
+    %% Custom Styling
+    classDef actor fill:#1e293b,stroke:#38bdf8,stroke-width:2px,color:#f8fafc;
+    classDef web fill:#0f172a,stroke:#818cf8,stroke-width:2px,color:#f8fafc;
+    classDef api fill:#111827,stroke:#34d399,stroke-width:2px,color:#f8fafc;
+    classDef data fill:#1e1b4b,stroke:#a78bfa,stroke-width:2px,color:#f8fafc;
+    classDef ext fill:#312e81,stroke:#f472b6,stroke-width:2px,stroke-dasharray: 4 4,color:#f8fafc;
 
-    %% 1. Users / Clients
-    subgraph Clients["Users & Browsers"]
-        R_USER(("Recruiter<br/>(Admin / Hiring)")):::client
-        C_USER(("Candidate<br/>(Applicant)")):::client
-    end
+    %% 1. Users
+    RECRUITER(("1. Recruiter")):::actor
+    CANDIDATE(("1. Candidate")):::actor
 
-    %% 2. Web Layer
-    subgraph WebLayer["Next.js Web Client (apps/web :3000)"]
-        FE_APP["Next.js App Server<br/>• /recruiter/dashboard<br/>• /apply/:positionId<br/>• /track/:token"]:::frontend
-    end
+    %% 2. Frontend
+    FRONTEND["2. Frontend (Next.js)<br/>• Recruiter Dashboard<br/>• Application Form<br/>• Candidate Tracking Portal"]:::web
 
-    %% 3. API & Microservices
-    subgraph APILayer["Express API Gateway & Controllers (apps/api :5000)"]
-        AUTH_SVC["Auth Service<br/>(OAuth & Cookie Session)"]:::service
-        POS_SVC["Position & Round Service<br/>(CRUD & Config)"]:::service
-        APPLY_SVC["Application Service<br/>(Intake & Form Processing)"]:::service
-        EVAL_SVC["Evaluation Service<br/>(Round Pass / Fail & Scoring)"]:::service
-        TRACK_SVC["Tracking Service<br/>(Token Sanitizer & Submission)"]:::service
-        MAIL_SVC["Notification Engine<br/>(Mailer / Templating)"]:::service
-    end
+    %% 3. Backend
+    BACKEND["3. Backend (Express API)<br/>• Auth & Middleware<br/>• Positions & Rounds<br/>• Intake & Evaluation<br/>• Tracking & Emails"]:::api
 
-    %% 4. Data Layer & Storage
-    subgraph DataStorage["Data & Storage Layer"]
-        DB[("PostgreSQL DB<br/>• Users & Positions<br/>• Candidates & Applications<br/>• Rounds & Participations")]:::database
-        LOCAL_UPLOADS[("Local Storage<br/>/uploads/:filename<br/>(Candidate Resumes)")]:::storage
-    end
+    %% 4. Storage & Services
+    DB[("4. PostgreSQL<br/>(Prisma ORM)")]:::data
+    UPLOADS[("4. Local Storage<br/>(/uploads Resumes)")]:::data
+    GOOGLE{{"4. Google OAuth"}}:::ext
+    SMTP{{"4. SMTP Mailer"}}:::ext
 
-    %% 5. External Providers
-    subgraph CloudServices["External Cloud Providers"]
-        GOOGLE_AUTH{{"Google Cloud Identity<br/>(OAuth 2.0 Provider)"}}:::external
-        SMTP_RELAY{{"SMTP Mail Service<br/>(Gmail / SendGrid / SES)"}}:::external
-    end
+    %% Linear Flow: 1 -> 2 -> 3 -> 4
+    RECRUITER -->|"Manage jobs & evaluate"| FRONTEND
+    CANDIDATE -->|"Apply & check status"| FRONTEND
 
-    %% Connections & Data Flow
-    R_USER <-->|1. Manage Pipeline / Evaluate| FE_APP
-    C_USER <-->|2. Apply & Track Status| FE_APP
+    FRONTEND <-->|"REST API & Session Cookie"| BACKEND
 
-    FE_APP <-->|Cookie Auth & API Calls| AUTH_SVC
-    FE_APP <-->|Create / Update Positions| POS_SVC
-    FE_APP <-->|POST Application + Resume| APPLY_SVC
-    FE_APP <-->|Evaluate & Schedule Candidate| EVAL_SVC
-    FE_APP <-->|GET Status / Submit Test| TRACK_SVC
-
-    AUTH_SVC <-->|OAuth Code & User Profile| GOOGLE_AUTH
-    AUTH_SVC <-->|Query / Upsert User| DB
-
-    POS_SVC -->|Query / Update Positions| DB
-    POS_SVC -->|Trigger Announcement| MAIL_SVC
-
-    APPLY_SVC -->|1. Save File to Disk| LOCAL_UPLOADS
-    APPLY_SVC -->|2. Create Candidate & Application| DB
-
-    EVAL_SVC -->|Update Round Status & Score| DB
-
-    TRACK_SVC -->|Fetch Sanitized Candidate Results| DB
-    TRACK_SVC -->|Save Code / Submission Link| DB
-
-    MAIL_SVC -->|Dispatch Email Alerts| SMTP_RELAY
-    SMTP_RELAY -.->|Deliver Job & Update Notices| C_USER
+    BACKEND <-->|"Read / Write Data"| DB
+    BACKEND -->|"Save Resumes"| UPLOADS
+    BACKEND <-->|"OAuth verify"| GOOGLE
+    BACKEND -->|"Send Emails"| SMTP
+    SMTP -.->|"Deliver Notification"| CANDIDATE
 ```
 
 ---
