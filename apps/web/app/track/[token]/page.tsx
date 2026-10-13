@@ -24,11 +24,21 @@ function TrackingPortalContent() {
   const [copied, setCopied] = useState(false);
 
   // Assessment submission state keyed by roundId
-  const [assessmentGithub, setAssessmentGithub] = useState<Record<string, string>>({});
-  const [assessmentOther, setAssessmentOther] = useState<Record<string, string>>({});
-  const [assessmentSubmitting, setAssessmentSubmitting] = useState<Record<string, boolean>>({});
-  const [assessmentSuccess, setAssessmentSuccess] = useState<Record<string, boolean>>({});
-  const [assessmentError, setAssessmentError] = useState<Record<string, string | null>>({});
+  const [assessmentGithub, setAssessmentGithub] = useState<
+    Record<string, string>
+  >({});
+  const [assessmentOther, setAssessmentOther] = useState<
+    Record<string, string>
+  >({});
+  const [assessmentSubmitting, setAssessmentSubmitting] = useState<
+    Record<string, boolean>
+  >({});
+  const [assessmentSuccess, setAssessmentSuccess] = useState<
+    Record<string, boolean>
+  >({});
+  const [assessmentError, setAssessmentError] = useState<
+    Record<string, string | null>
+  >({});
 
   const handleAssessmentSubmit = async (roundId: string) => {
     if (!token) return;
@@ -51,7 +61,9 @@ function TrackingPortalContent() {
         const exists = prev.roundResults.find((r) => r.roundId === roundId);
         const updatedResults = exists
           ? prev.roundResults.map((r) =>
-              r.roundId === roundId ? { ...r, submissionData, status: "IN_PROGRESS" as const } : r,
+              r.roundId === roundId
+                ? { ...r, submissionData, status: "IN_PROGRESS" as const }
+                : r,
             )
           : [
               ...prev.roundResults,
@@ -70,7 +82,10 @@ function TrackingPortalContent() {
     } catch (err: unknown) {
       setAssessmentError((prev) => ({
         ...prev,
-        [roundId]: err instanceof Error ? err.message : "Submission failed. Please try again.",
+        [roundId]:
+          err instanceof Error
+            ? err.message
+            : "Submission failed. Please try again.",
       }));
     } finally {
       setAssessmentSubmitting((prev) => ({ ...prev, [roundId]: false }));
@@ -474,15 +489,26 @@ function TrackingPortalContent() {
                     {/* Interview details if scheduled and published for this candidate */}
                     {(() => {
                       const isCandidatePublished = Boolean(result?.isPublished);
-                      const interviewDate = result?.scheduledAt || (isCandidatePublished ? round.config?.meetingDate : null);
-                      const interviewUrl = result?.meetingUrl || (isCandidatePublished ? round.config?.meetingUrl : null);
+                      const interviewDate =
+                        result?.scheduledAt ||
+                        (isCandidatePublished
+                          ? round.config?.meetingDate
+                          : null);
+                      const interviewUrl =
+                        result?.meetingUrl ||
+                        (isCandidatePublished
+                          ? round.config?.meetingUrl
+                          : null);
 
-                      if (isCandidatePublished && (interviewDate || interviewUrl)) {
+                      if (
+                        isCandidatePublished &&
+                        (interviewDate || interviewUrl)
+                      ) {
                         return (
                           <div className="mt-4 rounded-xl border border-[#C5D1FA] bg-[#EEF2FF] p-4 text-xs text-[#2F4BFF] space-y-3">
                             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#2F4BFF]/15 pb-2">
                               <span className="font-semibold text-sm text-[#101010] flex items-center gap-1.5">
-                                🎥 Final Interview Schedule
+                                🎥 Scheduled Time
                               </span>
                               <span className="rounded-full bg-[#E6F4EA] border border-[#A8DBB5] px-2.5 py-0.5 text-[11px] font-semibold text-[#1B6B3A]">
                                 ✓ Confirmed
@@ -567,7 +593,9 @@ function TrackingPortalContent() {
                       if (isCurrent && round.type === "INTERVIEW") {
                         return (
                           <div className="mt-3 rounded-xl border border-dashed border-[#CFCFC8] bg-white/70 p-3.5 text-xs text-[#5C5C57]">
-                            ⏳ The interview date and Google Meet link will be scheduled and published here by the hiring team shortly.
+                            ⏳ The interview date and Google Meet link will be
+                            scheduled and published here by the hiring team
+                            shortly.
                           </div>
                         );
                       }
@@ -599,17 +627,16 @@ function TrackingPortalContent() {
                                   📅 Date & Time
                                 </span>
                                 <p className="font-semibold text-sm text-[#101010]">
-                                  {new Date(round.config.testDate).toLocaleString(
-                                    "en-US",
-                                    {
-                                      weekday: "short",
-                                      month: "short",
-                                      day: "numeric",
-                                      year: "numeric",
-                                      hour: "2-digit",
-                                      minute: "2-digit",
-                                    },
-                                  )}
+                                  {new Date(
+                                    round.config.testDate,
+                                  ).toLocaleString("en-US", {
+                                    weekday: "short",
+                                    month: "short",
+                                    day: "numeric",
+                                    year: "numeric",
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })}
                                 </p>
                               </div>
                             )}
@@ -677,7 +704,8 @@ function TrackingPortalContent() {
                         !round.config ||
                         (!round.config.testDate && !round.config.location)) && (
                         <div className="mt-3 rounded-xl border border-dashed border-[#CFCFC8] bg-white/70 p-3.5 text-xs text-[#5C5C57]">
-                          ⏳ Test schedule, physical venue, and syllabus will be published here by the hiring team shortly.
+                          ⏳ Test schedule, physical venue, and syllabus will be
+                          published here by the hiring team shortly.
                         </div>
                       )}
 
@@ -700,16 +728,23 @@ function TrackingPortalContent() {
                       round.type === "ASSESSMENT" &&
                       (!result?.isPublished || !round.config?.description) && (
                         <div className="mt-3 rounded-xl border border-dashed border-[#CFCFC8] bg-white/70 p-3.5 text-xs text-[#5C5C57]">
-                          ⏳ Assessment brief and instructions will be published here by the hiring team shortly.
+                          ⏳ Assessment brief and instructions will be published
+                          here by the hiring team shortly.
                         </div>
                       )}
 
                     {/* Practical Assessment: submission form / submitted state (only if published for candidate) */}
-                    {round.type === "ASSESSMENT" && isCurrent && Boolean(result?.isPublished) && (
+                    {round.type === "ASSESSMENT" &&
+                      isCurrent &&
+                      Boolean(result?.isPublished) &&
                       (() => {
                         const submission = result?.submissionData;
-                        const alreadySubmitted = Boolean(submission?.githubUrl || submission?.otherUrl);
-                        const isSubmitting = Boolean(assessmentSubmitting[round.id]);
+                        const alreadySubmitted = Boolean(
+                          submission?.githubUrl || submission?.otherUrl,
+                        );
+                        const isSubmitting = Boolean(
+                          assessmentSubmitting[round.id],
+                        );
                         const didSucceed = Boolean(assessmentSuccess[round.id]);
                         const submitErr = assessmentError[round.id];
 
@@ -729,11 +764,15 @@ function TrackingPortalContent() {
                             {alreadySubmitted && !didSucceed ? (
                               <div className="space-y-2 text-xs text-[#5C5C57]">
                                 <p className="text-[#1B6B3A] font-medium">
-                                  ✓ Your submission has been received. The recruiter will review it and update your status.
+                                  ✓ Your submission has been received. The
+                                  recruiter will review it and update your
+                                  status.
                                 </p>
                                 {submission?.githubUrl && (
                                   <div className="flex items-center gap-2">
-                                    <span className="text-[#8A8A84]">GitHub:</span>
+                                    <span className="text-[#8A8A84]">
+                                      GitHub:
+                                    </span>
                                     <a
                                       href={submission.githubUrl}
                                       target="_blank"
@@ -746,7 +785,9 @@ function TrackingPortalContent() {
                                 )}
                                 {submission?.otherUrl && (
                                   <div className="flex items-center gap-2">
-                                    <span className="text-[#8A8A84]">Other link:</span>
+                                    <span className="text-[#8A8A84]">
+                                      Other link:
+                                    </span>
                                     <a
                                       href={submission.otherUrl}
                                       target="_blank"
@@ -760,9 +801,18 @@ function TrackingPortalContent() {
                                 <button
                                   type="button"
                                   onClick={() => {
-                                    setAssessmentGithub((p) => ({ ...p, [round.id]: submission?.githubUrl || "" }));
-                                    setAssessmentOther((p) => ({ ...p, [round.id]: submission?.otherUrl || "" }));
-                                    setAssessmentSuccess((p) => ({ ...p, [round.id]: false }));
+                                    setAssessmentGithub((p) => ({
+                                      ...p,
+                                      [round.id]: submission?.githubUrl || "",
+                                    }));
+                                    setAssessmentOther((p) => ({
+                                      ...p,
+                                      [round.id]: submission?.otherUrl || "",
+                                    }));
+                                    setAssessmentSuccess((p) => ({
+                                      ...p,
+                                      [round.id]: false,
+                                    }));
                                   }}
                                   className="mt-1 text-[11px] text-[#5C5C57] underline cursor-pointer"
                                 >
@@ -773,7 +823,8 @@ function TrackingPortalContent() {
                               <div className="space-y-3">
                                 {didSucceed && (
                                   <div className="rounded-xl border border-[#A8DBB5] bg-[#E6F4EA] px-3 py-2 text-xs font-medium text-[#1B6B3A]">
-                                    ✓ Submitted successfully! The recruiter will review your work.
+                                    ✓ Submitted successfully! The recruiter will
+                                    review your work.
                                   </div>
                                 )}
                                 {submitErr && (
@@ -790,7 +841,10 @@ function TrackingPortalContent() {
                                     placeholder="https://github.com/your-username/project"
                                     value={assessmentGithub[round.id] || ""}
                                     onChange={(e) =>
-                                      setAssessmentGithub((p) => ({ ...p, [round.id]: e.target.value }))
+                                      setAssessmentGithub((p) => ({
+                                        ...p,
+                                        [round.id]: e.target.value,
+                                      }))
                                     }
                                     className="min-h-9 w-full rounded-xl border border-[#CFCFC8] bg-white px-3 text-xs text-[#101010] placeholder-[#8A8A84] focus:border-[#101010] focus:outline-none"
                                   />
@@ -798,35 +852,50 @@ function TrackingPortalContent() {
                                 <div className="space-y-1.5">
                                   <label className="block text-xs font-medium text-[#5C5C57]">
                                     Other Link{" "}
-                                    <span className="text-[#8A8A84] font-normal">(optional — demo, portfolio, video, etc.)</span>
+                                    <span className="text-[#8A8A84] font-normal">
+                                      (optional — demo, portfolio, video, etc.)
+                                    </span>
                                   </label>
                                   <input
                                     type="url"
                                     placeholder="https://your-demo.vercel.app"
                                     value={assessmentOther[round.id] || ""}
                                     onChange={(e) =>
-                                      setAssessmentOther((p) => ({ ...p, [round.id]: e.target.value }))
+                                      setAssessmentOther((p) => ({
+                                        ...p,
+                                        [round.id]: e.target.value,
+                                      }))
                                     }
                                     className="min-h-9 w-full rounded-xl border border-[#CFCFC8] bg-white px-3 text-xs text-[#101010] placeholder-[#8A8A84] focus:border-[#101010] focus:outline-none"
                                   />
                                 </div>
                                 <button
                                   type="button"
-                                  disabled={isSubmitting || (!assessmentGithub[round.id]?.trim() && !assessmentOther[round.id]?.trim())}
-                                  onClick={() => handleAssessmentSubmit(round.id)}
+                                  disabled={
+                                    isSubmitting ||
+                                    (!assessmentGithub[round.id]?.trim() &&
+                                      !assessmentOther[round.id]?.trim())
+                                  }
+                                  onClick={() =>
+                                    handleAssessmentSubmit(round.id)
+                                  }
                                   className="w-full min-h-9 cursor-pointer rounded-full bg-[#101010] text-xs font-medium text-white transition-opacity hover:opacity-80 disabled:opacity-40"
                                 >
-                                  {isSubmitting ? "Submitting..." : alreadySubmitted ? "Update Submission" : "Submit Assessment"}
+                                  {isSubmitting
+                                    ? "Submitting..."
+                                    : alreadySubmitted
+                                      ? "Update Submission"
+                                      : "Submit Assessment"}
                                 </button>
                                 <p className="text-[11px] text-[#8A8A84]">
-                                  You can update your submission at any time before the recruiter makes a decision.
+                                  You can update your submission at any time
+                                  before the recruiter makes a decision.
                                 </p>
                               </div>
                             )}
                           </div>
                         );
-                      })()
-                    )}
+                      })()}
 
                     {/* External test link if available */}
                     {round.externalUrl && !round.config?.mapUrl && (

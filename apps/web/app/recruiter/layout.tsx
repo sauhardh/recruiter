@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { getCurrentUser, logoutUser, type User } from "../../lib/auth";
+import Image from "next/image";
 
 type IconName = "grid" | "briefcase" | "users";
 
@@ -83,15 +84,15 @@ export default function RecruiterLayout({
                 <div className="flex items-center gap-2.5 text-sm">
                   {user.avatarUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img
+                    <Image
                       src={user.avatarUrl}
-                      alt={user.name}
+                      alt={user.name.slice(0, 1)}
+                      width={32}
+                      height={32}
                       className="h-8 w-8 rounded-full border border-[#E3E3DD]"
                     />
                   ) : (
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#101010] text-xs font-semibold text-[#F6F6F3]">
-                      {user.name.charAt(0).toUpperCase()}
-                    </div>
+                    <></>
                   )}
                   <span className="hidden max-w-36 truncate text-[#5C5C57] sm:block">
                     {user.name}
