@@ -1,0 +1,12 @@
+node_modules
+apps/*/node_modules
+dist
+apps/*/dist
+.next
+apps/*/.next
+.git
+.github
+.vscode
+.env*
+!apps/*/.env.example
+*.log

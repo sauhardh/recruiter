@@ -4,6 +4,7 @@ import type {
   DashboardStats,
   HiringRound,
   Application,
+  RoundParticipation,
 } from "./types";
 
 export interface CreatePositionPayload {
@@ -34,6 +35,7 @@ export interface UpdateRoundPayload {
   description?: string | null;
   meetingDate?: string | null;
   meetingUrl?: string | null;
+  instructions?: string | null;
   isPublished?: boolean;
 }
 
@@ -106,4 +108,28 @@ export async function evaluateCandidate(
       body: JSON.stringify({ decision }),
     },
   );
+}
+
+export interface CandidateSchedulePayload {
+  scheduledAt?: string | null;
+  meetingUrl?: string | null;
+  timeZone?: string | null;
+  customConfig?: Record<string, unknown> | null;
+  isPublished?: boolean;
+  notes?: string | null;
+}
+
+export async function updateCandidateRoundSchedule(
+  applicationId: string,
+  roundId: string,
+  payload: CandidateSchedulePayload,
+): Promise<{ message: string; participation: RoundParticipation; application: Application }> {
+  return apiFetch<{
+    message: string;
+    participation: RoundParticipation;
+    application: Application;
+  }>(`/api/applications/${applicationId}/rounds/${roundId}/schedule`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
 }

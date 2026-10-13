@@ -86,6 +86,7 @@ export async function getTrackingApplication(req: Request, res: Response) {
             decisionAt: true,
             completedAt: true,
             submissionData: true,
+            customConfig: true,
             // Recruiter internal notes are strictly omitted for candidate privacy
           },
         },
@@ -125,16 +126,56 @@ export async function getTrackingApplication(req: Request, res: Response) {
       });
     }
 
-    // Sanitize rounds: only expose test/phase config if published
+    // Sanitize rounds strictly PER CANDIDATE:
+    // Only expose details (dates, venue, map, syllabus, brief) if published specifically for this candidate!
     const sanitizedRounds = rounds.map((round) => {
-      const cfg =
-        round.config && typeof round.config === "object"
-          ? (round.config as Record<string, unknown>)
-          : null;
-      const isPublished = Boolean(cfg?.isPublished) || Boolean(round.publishedAt);
+      const candidateResult = application.roundResults.find(
+        (r) => r.roundId === round.id,
+      );
+      const isCandidatePublished = Boolean(candidateResult?.isPublished);
+
+      if (!isCandidatePublished) {
+        // Do NOT leak details of unpublished or upcoming stages
+        return {
+          id: round.id,
+          title: round.title,
+          type: round.type,
+          order: round.order,
+          instructions: null,
+          externalUrl: null,
+          publishedAt: null,
+          isRequired: round.isRequired,
+          config: null,
+        };
+      }
+
+      const baseConfig = (round.config && typeof round.config === "object"
+        ? (round.config as Record<string, unknown>)
+        : {}) as Record<string, unknown>;
+
+      const customConfig = (candidateResult?.customConfig &&
+      typeof candidateResult.customConfig === "object"
+        ? (candidateResult.customConfig as Record<string, unknown>)
+        : {}) as Record<string, unknown>;
+
+      const candidateEffectiveConfig = {
+        location: (customConfig.location ?? baseConfig.location ?? null) as string | null,
+        mapUrl: (customConfig.mapUrl ?? baseConfig.mapUrl ?? round.externalUrl ?? null) as string | null,
+        syllabus: (customConfig.syllabus ?? baseConfig.syllabus ?? round.instructions ?? null) as string | null,
+        description: (customConfig.description ?? baseConfig.description ?? round.instructions ?? null) as string | null,
+        testDate: candidateResult?.scheduledAt
+          ? candidateResult.scheduledAt.toISOString()
+          : ((customConfig.testDate ?? baseConfig.testDate ?? null) as string | null),
+        meetingDate: candidateResult?.scheduledAt
+          ? candidateResult.scheduledAt.toISOString()
+          : ((customConfig.meetingDate ?? baseConfig.meetingDate ?? null) as string | null),
+        meetingUrl: candidateResult?.meetingUrl ?? (customConfig.meetingUrl as string | null) ?? (baseConfig.meetingUrl as string | null) ?? null,
+        isPublished: true,
+      };
+
       return {
         ...round,
-        config: isPublished ? cfg : null,
+        config: candidateEffectiveConfig,
       };
     });
 
@@ -142,6 +183,7 @@ export async function getTrackingApplication(req: Request, res: Response) {
     const sanitizedRoundResults = application.roundResults.map((result) => ({
       ...result,
       score: result.isPublished ? result.score : null,
+      customConfig: result.isPublished ? result.customConfig : null,
     }));
 
     res.json({

@@ -50,6 +50,7 @@ export interface RoundParticipation {
   meetingUrl?: string | null;
   decisionAt?: string | null;
   completedAt?: string | null;
+  customConfig?: Record<string, unknown> | null;
 }
 
 export interface AiEvaluation {

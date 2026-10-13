@@ -471,12 +471,13 @@ function TrackingPortalContent() {
                       </p>
                     )}
 
-                    {/* Interview details if scheduled on candidate result or published on round */}
+                    {/* Interview details if scheduled and published for this candidate */}
                     {(() => {
-                      const interviewDate = result?.scheduledAt || round.config?.meetingDate;
-                      const interviewUrl = result?.meetingUrl || round.config?.meetingUrl;
+                      const isCandidatePublished = Boolean(result?.isPublished);
+                      const interviewDate = result?.scheduledAt || (isCandidatePublished ? round.config?.meetingDate : null);
+                      const interviewUrl = result?.meetingUrl || (isCandidatePublished ? round.config?.meetingUrl : null);
 
-                      if (interviewDate || interviewUrl) {
+                      if (isCandidatePublished && (interviewDate || interviewUrl)) {
                         return (
                           <div className="mt-4 rounded-xl border border-[#C5D1FA] bg-[#EEF2FF] p-4 text-xs text-[#2F4BFF] space-y-3">
                             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#2F4BFF]/15 pb-2">
@@ -574,8 +575,9 @@ function TrackingPortalContent() {
                       return null;
                     })()}
 
-                    {/* Written Test Details if published */}
-                    {round.config &&
+                    {/* Written Test Details if published for this candidate */}
+                    {Boolean(result?.isPublished) &&
+                      round.config &&
                       (round.config.testDate ||
                         round.config.location ||
                         round.config.mapUrl ||
@@ -668,39 +670,42 @@ function TrackingPortalContent() {
                         </div>
                       )}
 
-                    {/* Notice if round is TEST and in-progress, but details are not published yet */}
+                    {/* Notice if round is TEST and in-progress, but details are not published yet for this candidate */}
                     {isCurrent &&
                       round.type === "TEST" &&
-                      (!round.config ||
+                      (!result?.isPublished ||
+                        !round.config ||
                         (!round.config.testDate && !round.config.location)) && (
                         <div className="mt-3 rounded-xl border border-dashed border-[#CFCFC8] bg-white/70 p-3.5 text-xs text-[#5C5C57]">
                           ⏳ Test schedule, physical venue, and syllabus will be published here by the hiring team shortly.
                         </div>
                       )}
 
-                    {/* Practical Assessment: description from recruiter */}
-                    {round.type === "ASSESSMENT" && round.config?.description && (
-                      <div className="mt-4 rounded-xl border border-[#2F4BFF]/30 bg-[#EEF2FF]/60 p-4 text-xs space-y-2">
-                        <span className="font-semibold text-sm text-[#101010] flex items-center gap-1.5">
-                          🧪 Assessment Brief
-                        </span>
-                        <p className="text-xs text-[#101010] whitespace-pre-wrap leading-relaxed">
-                          {round.config.description}
-                        </p>
-                      </div>
-                    )}
+                    {/* Practical Assessment: description from recruiter if published for this candidate */}
+                    {Boolean(result?.isPublished) &&
+                      round.type === "ASSESSMENT" &&
+                      round.config?.description && (
+                        <div className="mt-4 rounded-xl border border-[#2F4BFF]/30 bg-[#EEF2FF]/60 p-4 text-xs space-y-2">
+                          <span className="font-semibold text-sm text-[#101010] flex items-center gap-1.5">
+                            🧪 Assessment Brief
+                          </span>
+                          <p className="text-xs text-[#101010] whitespace-pre-wrap leading-relaxed">
+                            {round.config.description}
+                          </p>
+                        </div>
+                      )}
 
-                    {/* Notice if ASSESSMENT round is current but recruiter hasn't published description yet */}
+                    {/* Notice if ASSESSMENT round is current but recruiter hasn't published brief yet for this candidate */}
                     {isCurrent &&
                       round.type === "ASSESSMENT" &&
-                      !round.config?.description && (
+                      (!result?.isPublished || !round.config?.description) && (
                         <div className="mt-3 rounded-xl border border-dashed border-[#CFCFC8] bg-white/70 p-3.5 text-xs text-[#5C5C57]">
                           ⏳ Assessment brief and instructions will be published here by the hiring team shortly.
                         </div>
                       )}
 
-                    {/* Practical Assessment: submission form / submitted state */}
-                    {round.type === "ASSESSMENT" && isCurrent && (
+                    {/* Practical Assessment: submission form / submitted state (only if published for candidate) */}
+                    {round.type === "ASSESSMENT" && isCurrent && Boolean(result?.isPublished) && (
                       (() => {
                         const submission = result?.submissionData;
                         const alreadySubmitted = Boolean(submission?.githubUrl || submission?.otherUrl);

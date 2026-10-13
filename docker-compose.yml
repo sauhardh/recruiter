@@ -1,7 +1,6 @@
 services:
   postgres:
     image: postgres:17
-    container_name: recruiter-postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: recruiter
@@ -11,6 +10,39 @@ services:
       - "5432:5432"
     volumes:
       - recruiter_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U recruiter -d recruiter"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: ./apps/api/Dockerfile
+    ports:
+      - "5000:5000"
+    env_file:
+      - ./apps/api/.env
+    environment:
+      # overrides localhost to container name 'postgres'
+      DATABASE_URL: "postgresql://recruiter:dev_password@postgres:5432/recruiter?schema=public"
+    volumes:
+      - ./apps/api/uploads/:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: ./apps/web/Dockerfile
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./apps/web/.env.local
+    depends_on:
+      - api
 
 volumes:
   recruiter_pgdata:

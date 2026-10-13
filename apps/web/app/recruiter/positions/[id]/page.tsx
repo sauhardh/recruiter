@@ -10,6 +10,8 @@ import {
   announcePosition,
   updateRound,
   evaluateCandidate,
+  updateCandidateRoundSchedule,
+  type CandidateSchedulePayload,
 } from "../../../../lib/positions";
 import type {
   Position,
@@ -35,15 +37,11 @@ function WrittenTestSetupCard({
   onRoundUpdated: (updated: HiringRound) => void;
 }) {
   const config = (round.config || {}) as {
-    testDate?: string;
     location?: string;
     mapUrl?: string;
     syllabus?: string;
-    isPublished?: boolean;
-    publishedAt?: string;
   };
 
-  const [testDate, setTestDate] = useState(config.testDate || "");
   const [location, setLocation] = useState(config.location || "");
   const [mapUrl, setMapUrl] = useState(
     config.mapUrl || round.externalUrl || "",
@@ -51,7 +49,6 @@ function WrittenTestSetupCard({
   const [syllabus, setSyllabus] = useState(
     config.syllabus || round.instructions || "",
   );
-  const isPublished = Boolean(config.isPublished) || Boolean(round.publishedAt);
 
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -59,41 +56,33 @@ function WrittenTestSetupCard({
 
   useEffect(() => {
     const cfg = (round.config || {}) as {
-      testDate?: string;
       location?: string;
       mapUrl?: string;
       syllabus?: string;
-      isPublished?: boolean;
-      publishedAt?: string;
     };
-    setTestDate(cfg.testDate || "");
     setLocation(cfg.location || "");
     setMapUrl(cfg.mapUrl || round.externalUrl || "");
     setSyllabus(cfg.syllabus || round.instructions || "");
   }, [round.id, round.config, round.externalUrl, round.instructions]);
 
-  const handleSave = async (publish: boolean) => {
+  const handleSave = async () => {
     setSaving(true);
     setSuccessMsg(null);
     setErrorMsg(null);
     try {
       const res = await updateRound(positionId, round.id, {
-        testDate: testDate || null,
         location: location.trim() || null,
         mapUrl: mapUrl.trim() || null,
         syllabus: syllabus.trim() || null,
-        isPublished: publish,
       });
       onRoundUpdated(res.round);
       setSuccessMsg(
-        publish
-          ? "✓ Published successfully! Candidates can now view test details on their tracking portal."
-          : "✓ Draft saved. Details remain hidden from candidates until published.",
+        "✓ Common template saved! Use the schedule & publish controls on each candidate below to set individual test dates and publish.",
       );
       setTimeout(() => setSuccessMsg(null), 5000);
     } catch (err: unknown) {
       setErrorMsg(
-        err instanceof Error ? err.message : "Failed to update test details",
+        err instanceof Error ? err.message : "Failed to update test template",
       );
     } finally {
       setSaving(false);
@@ -122,24 +111,16 @@ function WrittenTestSetupCard({
           </span>
           <div>
             <h4 className="font-semibold text-sm text-[#101010]">
-              Written Test & Venue Publication
+              Written Test / Venue: Common Round Template
             </h4>
             <p className="text-xs text-[#5C5C57]">
-              Configure test date, venue location, map link, and syllabus to
-              publish on candidate tracking portals.
+              Enter the common venue, map link, and syllabus once. You will set dates and publish individually per candidate below.
             </p>
           </div>
         </div>
 
-        {/* Publication Status Pill */}
-        <span
-          className={`rounded-full px-3 py-1 text-xs font-semibold ${
-            isPublished
-              ? "bg-[#E6F4EA] text-[#1B6B3A] border border-[#A8DBB5]"
-              : "bg-[#F1F1EC] text-[#5C5C57] border border-[#E3E3DD]"
-          }`}
-        >
-          {isPublished ? "● Published to Candidates" : "○ Draft (Unpublished)"}
+        <span className="rounded-full bg-[#EEF2FF] border border-[#C5D1FA] px-3 py-1 font-mono text-xs font-semibold text-[#2F4BFF]">
+          Default Template
         </span>
       </div>
 
@@ -157,23 +138,10 @@ function WrittenTestSetupCard({
 
       {/* Inputs */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Test Date & Time */}
-        <div className="space-y-1.5">
-          <label className="block text-xs font-medium text-[#5C5C57]">
-            Test Date & Time <span className="text-[#A8281E]">*</span>
-          </label>
-          <input
-            type="datetime-local"
-            value={testDate}
-            onChange={(e) => setTestDate(e.target.value)}
-            className="min-h-9 w-full rounded-xl border border-[#CFCFC8] bg-white px-3 text-xs text-[#101010] focus:border-[#101010] focus:outline-none"
-          />
-        </div>
-
         {/* Location / Venue */}
         <div className="space-y-1.5">
           <label className="block text-xs font-medium text-[#5C5C57]">
-            Physical Venue / Location <span className="text-[#A8281E]">*</span>
+            Default Physical Venue / Location
           </label>
           <input
             type="text"
@@ -185,10 +153,10 @@ function WrittenTestSetupCard({
         </div>
 
         {/* Map Link */}
-        <div className="space-y-1.5 md:col-span-2">
+        <div className="space-y-1.5">
           <div className="flex items-center justify-between">
             <label className="block text-xs font-medium text-[#5C5C57]">
-              Google Maps Link
+              Default Google Maps Link
             </label>
             {mapUrl && (
               <a
@@ -216,8 +184,8 @@ function WrittenTestSetupCard({
             Description & Syllabus Box
           </label>
           <textarea
-            rows={4}
-            placeholder="Outline the syllabus, topics covered, test duration, question format (MCQ/written), and what items candidates must bring (ID card, pens, etc.)..."
+            rows={3}
+            placeholder="Outline the syllabus, topics covered, test duration, question format (MCQ/written), and what items candidates must bring..."
             value={syllabus}
             onChange={(e) => setSyllabus(e.target.value)}
             className="w-full rounded-xl border border-[#CFCFC8] bg-white p-3 text-xs text-[#101010] placeholder-[#8A8A84] focus:border-[#101010] focus:outline-none leading-relaxed"
@@ -228,35 +196,17 @@ function WrittenTestSetupCard({
       {/* Buttons */}
       <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-[#EDEDE8]">
         <p className="text-[11px] text-[#8A8A84]">
-          Candidates in this stage will see these details on their tracking
-          portal once published.
+          Candidates will automatically inherit these details unless overridden on their individual card.
         </p>
 
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            disabled={saving}
-            onClick={() => handleSave(false)}
-            className="min-h-8 cursor-pointer rounded-full border border-[#CFCFC8] bg-white px-4 text-xs font-medium text-[#5C5C57] transition-colors hover:border-[#101010] hover:text-[#101010] disabled:opacity-50"
-          >
-            {saving ? "Saving..." : "Save Draft"}
-          </button>
-
-          <button
-            type="button"
-            disabled={saving}
-            onClick={() => handleSave(!isPublished)}
-            className={`min-h-8 cursor-pointer rounded-full px-4 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50 ${
-              isPublished ? "bg-[#A8281E]" : "bg-[#2F4BFF]"
-            }`}
-          >
-            {saving
-              ? "Saving..."
-              : isPublished
-                ? "Unpublish Details"
-                : "Publish to Candidates"}
-          </button>
-        </div>
+        <button
+          type="button"
+          disabled={saving}
+          onClick={handleSave}
+          className="min-h-8 cursor-pointer rounded-full bg-[#101010] px-4 text-xs font-medium text-white transition-opacity hover:opacity-85 disabled:opacity-50"
+        >
+          {saving ? "Saving..." : "Save Common Template"}
+        </button>
       </div>
     </div>
   );
@@ -273,14 +223,11 @@ function AssessmentSetupCard({
 }) {
   const config = (round.config || {}) as {
     description?: string;
-    isPublished?: boolean;
-    publishedAt?: string;
   };
 
   const [description, setDescription] = useState(
     config.description || round.instructions || "",
   );
-  const isPublished = Boolean(config.isPublished) || Boolean(round.publishedAt);
 
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -293,27 +240,24 @@ function AssessmentSetupCard({
     setDescription(cfg.description || round.instructions || "");
   }, [round.id, round.config, round.instructions]);
 
-  const handleSave = async (publish: boolean) => {
+  const handleSave = async () => {
     setSaving(true);
     setSuccessMsg(null);
     setErrorMsg(null);
     try {
       const res = await updateRound(positionId, round.id, {
         description: description.trim() || null,
-        isPublished: publish,
       });
       onRoundUpdated(res.round);
       setSuccessMsg(
-        publish
-          ? "✓ Published! Candidates can now view the assessment brief and submit their work."
-          : "✓ Draft saved. Brief is hidden from candidates until published.",
+        "✓ Common assessment brief saved! Use the publish button on each candidate below to release the brief to them.",
       );
       setTimeout(() => setSuccessMsg(null), 5000);
     } catch (err: unknown) {
       setErrorMsg(
         err instanceof Error
           ? err.message
-          : "Failed to update assessment details",
+          : "Failed to update assessment brief",
       );
     } finally {
       setSaving(false);
@@ -342,24 +286,16 @@ function AssessmentSetupCard({
           </span>
           <div>
             <h4 className="font-semibold text-sm text-[#101010]">
-              Practical Assessment Setup
+              Practical Assessment: Common Brief Template
             </h4>
             <p className="text-xs text-[#5C5C57]">
-              Write an assessment brief for candidates. They will submit their
-              GitHub link and other work links after reviewing it.
+              Write the common assessment task and deliverables once. You will publish to candidates individually below.
             </p>
           </div>
         </div>
 
-        {/* Publication Status Pill */}
-        <span
-          className={`rounded-full px-3 py-1 text-xs font-semibold ${
-            isPublished
-              ? "bg-[#E6F4EA] text-[#1B6B3A] border border-[#A8DBB5]"
-              : "bg-[#F1F1EC] text-[#5C5C57] border border-[#E3E3DD]"
-          }`}
-        >
-          {isPublished ? "● Published to Candidates" : "○ Draft (Unpublished)"}
+        <span className="rounded-full bg-[#EEF2FF] border border-[#C5D1FA] px-3 py-1 font-mono text-xs font-semibold text-[#2F4BFF]">
+          Default Template
         </span>
       </div>
 
@@ -378,54 +314,31 @@ function AssessmentSetupCard({
       {/* Assessment Description */}
       <div className="space-y-1.5">
         <label className="block text-xs font-medium text-[#5C5C57]">
-          Assessment Brief / Description{" "}
-          <span className="text-[#A8281E]">*</span>
+          Assessment Brief & Expected Deliverables
         </label>
         <textarea
-          rows={6}
-          placeholder="Describe the practical assessment task in detail. Include: what the candidate must build/do, any constraints or requirements, evaluation criteria, expected deliverables (e.g. GitHub repo, live demo link), and the deadline if applicable."
+          rows={4}
+          placeholder="Describe the practical assessment task in detail. Include constraints, criteria, expected deliverables (e.g. GitHub repo, live demo link)..."
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           className="w-full rounded-xl border border-[#CFCFC8] bg-white p-3 text-xs text-[#101010] placeholder-[#8A8A84] focus:border-[#101010] focus:outline-none leading-relaxed"
         />
-        <p className="text-[11px] text-[#8A8A84]">
-          Candidates will see this brief and be asked to submit a GitHub link
-          and optional other link (demo, portfolio, etc.).
-        </p>
       </div>
 
       {/* Buttons */}
       <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-[#EDEDE8]">
         <p className="text-[11px] text-[#8A8A84]">
-          Candidates in this stage will see the brief and the submission form
-          once published.
+          Candidates only see this brief when you click "Publish to Candidate" on their card.
         </p>
 
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            disabled={saving}
-            onClick={() => handleSave(false)}
-            className="min-h-8 cursor-pointer rounded-full border border-[#CFCFC8] bg-white px-4 text-xs font-medium text-[#5C5C57] transition-colors hover:border-[#101010] hover:text-[#101010] disabled:opacity-50"
-          >
-            {saving ? "Saving..." : "Save Draft"}
-          </button>
-
-          <button
-            type="button"
-            disabled={saving}
-            onClick={() => handleSave(!isPublished)}
-            className={`min-h-8 cursor-pointer rounded-full px-4 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50 ${
-              isPublished ? "bg-[#A8281E]" : "bg-[#2F4BFF]"
-            }`}
-          >
-            {saving
-              ? "Saving..."
-              : isPublished
-                ? "Unpublish Brief"
-                : "Publish to Candidates"}
-          </button>
-        </div>
+        <button
+          type="button"
+          disabled={saving}
+          onClick={handleSave}
+          className="min-h-8 cursor-pointer rounded-full bg-[#101010] px-4 text-xs font-medium text-white transition-opacity hover:opacity-85 disabled:opacity-50"
+        >
+          {saving ? "Saving..." : "Save Common Brief"}
+        </button>
       </div>
     </div>
   );
@@ -441,15 +354,16 @@ function InterviewSetupCard({
   onRoundUpdated: (updated: HiringRound) => void;
 }) {
   const config = (round.config || {}) as {
-    meetingDate?: string;
+    instructions?: string;
     meetingUrl?: string;
-    isPublished?: boolean;
-    publishedAt?: string;
   };
 
-  const [meetingDate, setMeetingDate] = useState(config.meetingDate || "");
-  const [meetingUrl, setMeetingUrl] = useState(config.meetingUrl || "");
-  const isPublished = Boolean(config.isPublished) || Boolean(round.publishedAt);
+  const [instructions, setInstructions] = useState(
+    config.instructions || round.instructions || "",
+  );
+  const [meetingUrl, setMeetingUrl] = useState(
+    config.meetingUrl || round.externalUrl || "",
+  );
 
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -457,35 +371,32 @@ function InterviewSetupCard({
 
   useEffect(() => {
     const cfg = (round.config || {}) as {
-      meetingDate?: string;
+      instructions?: string;
       meetingUrl?: string;
     };
-    setMeetingDate(cfg.meetingDate || "");
-    setMeetingUrl(cfg.meetingUrl || "");
-  }, [round.id, round.config]);
+    setInstructions(cfg.instructions || round.instructions || "");
+    setMeetingUrl(cfg.meetingUrl || round.externalUrl || "");
+  }, [round.id, round.config, round.instructions, round.externalUrl]);
 
-  const handleSave = async (publish: boolean) => {
+  const handleSave = async () => {
     setSaving(true);
     setSuccessMsg(null);
     setErrorMsg(null);
     try {
       const res = await updateRound(positionId, round.id, {
-        meetingDate: meetingDate || null,
+        instructions: instructions.trim() || null,
         meetingUrl: meetingUrl.trim() || null,
-        isPublished: publish,
       });
       onRoundUpdated(res.round);
       setSuccessMsg(
-        publish
-          ? "✓ Published! Candidates can now see the interview schedule and join the meeting."
-          : "✓ Draft saved. Interview details are hidden from candidates until published.",
+        "✓ Common interview guidelines saved! Set individual interview times and Google Meet links per candidate below.",
       );
       setTimeout(() => setSuccessMsg(null), 5000);
     } catch (err: unknown) {
       setErrorMsg(
         err instanceof Error
           ? err.message
-          : "Failed to update interview details",
+          : "Failed to update interview guidelines",
       );
     } finally {
       setSaving(false);
@@ -519,24 +430,16 @@ function InterviewSetupCard({
           </span>
           <div>
             <h4 className="font-semibold text-sm text-[#101010]">
-              Interview Schedule Publication
+              Interview Guidelines: Common Round Template
             </h4>
             <p className="text-xs text-[#5C5C57]">
-              Set the interview date and Google Meet link to publish to
-              candidates on their tracking portal.
+              Set general interview instructions or default meeting link. Schedule specific dates and times individually per candidate below.
             </p>
           </div>
         </div>
 
-        {/* Publication Status Pill */}
-        <span
-          className={`rounded-full px-3 py-1 text-xs font-semibold ${
-            isPublished
-              ? "bg-[#E6F4EA] text-[#1B6B3A] border border-[#A8DBB5]"
-              : "bg-[#F1F1EC] text-[#5C5C57] border border-[#E3E3DD]"
-          }`}
-        >
-          {isPublished ? "● Published to Candidates" : "○ Draft (Unpublished)"}
+        <span className="rounded-full bg-[#EEF2FF] border border-[#C5D1FA] px-3 py-1 font-mono text-xs font-semibold text-[#2F4BFF]">
+          Default Template
         </span>
       </div>
 
@@ -553,37 +456,24 @@ function InterviewSetupCard({
       )}
 
       {/* Inputs */}
-      <div className="grid grid-cols-1 gap-4">
-        {/* Interview Date & Time */}
-        <div className="space-y-1.5">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-1.5 md:col-span-2">
           <label className="block text-xs font-medium text-[#5C5C57]">
-            Interview Date & Time <span className="text-[#A8281E]">*</span>
+            Interview Guidelines & Preparation Instructions
           </label>
-          <input
-            type="datetime-local"
-            value={meetingDate}
-            onChange={(e) => setMeetingDate(e.target.value)}
-            className="min-h-9 w-full rounded-xl border border-[#CFCFC8] bg-white px-3 text-xs text-[#101010] focus:border-[#101010] focus:outline-none"
+          <textarea
+            rows={3}
+            placeholder="e.g. Please join from a quiet room with a working webcam and microphone. The interview will last 45 minutes..."
+            value={instructions}
+            onChange={(e) => setInstructions(e.target.value)}
+            className="w-full rounded-xl border border-[#CFCFC8] bg-white p-3 text-xs text-[#101010] placeholder-[#8A8A84] focus:border-[#101010] focus:outline-none"
           />
         </div>
 
-        {/* Google Meet Link */}
-        <div className="space-y-1.5">
-          <div className="flex items-center justify-between">
-            <label className="block text-xs font-medium text-[#5C5C57]">
-              Google Meet Link <span className="text-[#A8281E]">*</span>
-            </label>
-            {meetingUrl && (
-              <a
-                href={meetingUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-mono text-[11px] text-[#2F4BFF] hover:underline"
-              >
-                Test Link ↗
-              </a>
-            )}
-          </div>
+        <div className="space-y-1.5 md:col-span-2">
+          <label className="block text-xs font-medium text-[#5C5C57]">
+            Default / Fallback Meeting URL (Optional)
+          </label>
           <input
             type="url"
             placeholder="https://meet.google.com/xxx-xxxx-xxx"
@@ -591,26 +481,360 @@ function InterviewSetupCard({
             onChange={(e) => setMeetingUrl(e.target.value)}
             className="min-h-9 w-full rounded-xl border border-[#CFCFC8] bg-white px-3 text-xs text-[#101010] placeholder-[#8A8A84] focus:border-[#101010] focus:outline-none"
           />
-          <p className="text-[11px] text-[#8A8A84]">
-            Candidates will see a "Join Meeting" button on their tracking portal
-            once published.
-          </p>
         </div>
       </div>
 
       {/* Buttons */}
       <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-[#EDEDE8]">
         <p className="text-[11px] text-[#8A8A84]">
-          Candidates in this stage will see the scheduled date and meeting link
-          once published.
+          Set individual dates, times, and dedicated meeting links per candidate below.
         </p>
+
+        <button
+          type="button"
+          disabled={saving}
+          onClick={handleSave}
+          className="min-h-8 cursor-pointer rounded-full bg-[#101010] px-4 text-xs font-medium text-white transition-opacity hover:opacity-85 disabled:opacity-50"
+        >
+          {saving ? "Saving..." : "Save Common Template"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function CandidateRoundScheduleCard({
+  application,
+  round,
+  onApplicationUpdated,
+}: {
+  application: Application;
+  round: HiringRound;
+  onApplicationUpdated: (updated: Application) => void;
+}) {
+  const participation = (application.roundResults || []).find(
+    (r) => r.roundId === round.id,
+  );
+  const isPublished = Boolean(participation?.isPublished);
+
+  const roundConfig = (round.config || {}) as {
+    location?: string;
+    mapUrl?: string;
+    syllabus?: string;
+    description?: string;
+  };
+
+  const customConfig = (participation?.customConfig || {}) as {
+    location?: string;
+    mapUrl?: string;
+    syllabus?: string;
+    description?: string;
+  };
+
+  const [scheduledDate, setScheduledDate] = useState(
+    participation?.scheduledAt
+      ? new Date(participation.scheduledAt).toISOString().slice(0, 16)
+      : "",
+  );
+  const [meetingUrl, setMeetingUrl] = useState(
+    participation?.meetingUrl || "",
+  );
+
+  const [customize, setCustomize] = useState(
+    Boolean(
+      customConfig.location ||
+        customConfig.mapUrl ||
+        customConfig.syllabus ||
+        customConfig.description,
+    ),
+  );
+  const [customLocation, setCustomLocation] = useState(
+    customConfig.location || "",
+  );
+  const [customMapUrl, setCustomMapUrl] = useState(
+    customConfig.mapUrl || "",
+  );
+  const [customSyllabus, setCustomSyllabus] = useState(
+    customConfig.syllabus || "",
+  );
+  const [customDescription, setCustomDescription] = useState(
+    customConfig.description || "",
+  );
+
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState<{ text: string; error?: boolean } | null>(
+    null,
+  );
+
+  useEffect(() => {
+    const part = (application.roundResults || []).find(
+      (r) => r.roundId === round.id,
+    );
+    setScheduledDate(
+      part?.scheduledAt
+        ? new Date(part.scheduledAt).toISOString().slice(0, 16)
+        : "",
+    );
+    setMeetingUrl(part?.meetingUrl || "");
+    const cust = (part?.customConfig || {}) as {
+      location?: string;
+      mapUrl?: string;
+      syllabus?: string;
+      description?: string;
+    };
+    setCustomLocation(cust.location || "");
+    setCustomMapUrl(cust.mapUrl || "");
+    setCustomSyllabus(cust.syllabus || "");
+    setCustomDescription(cust.description || "");
+    setCustomize(
+      Boolean(
+        cust.location || cust.mapUrl || cust.syllabus || cust.description,
+      ),
+    );
+  }, [application.id, round.id, application.roundResults]);
+
+  const handleSave = async (publish: boolean) => {
+    setSaving(true);
+    setMsg(null);
+    try {
+      const payload: CandidateSchedulePayload = {
+        scheduledAt: scheduledDate ? new Date(scheduledDate).toISOString() : null,
+        meetingUrl: meetingUrl.trim() || null,
+        isPublished: publish,
+        customConfig: customize
+          ? {
+              location: customLocation.trim() || null,
+              mapUrl: customMapUrl.trim() || null,
+              syllabus: customSyllabus.trim() || null,
+              description: customDescription.trim() || null,
+            }
+          : null,
+      };
+
+      const res = await updateCandidateRoundSchedule(
+        application.id,
+        round.id,
+        payload,
+      );
+      onApplicationUpdated(res.application);
+      setMsg({
+        text: publish
+          ? "✓ Published to candidate! Details are now live on their tracking portal."
+          : "✓ Draft saved. Details remain hidden from this candidate.",
+      });
+      setTimeout(() => setMsg(null), 5000);
+    } catch (err: unknown) {
+      setMsg({
+        text: err instanceof Error ? err.message : "Failed to update schedule",
+        error: true,
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const isTest =
+    round.type === "TEST" ||
+    round.title.toLowerCase().includes("test") ||
+    round.title.toLowerCase().includes("quiz");
+  const isAssessment = round.type === "ASSESSMENT";
+  const isInterview =
+    round.type === "INTERVIEW" ||
+    round.title.toLowerCase().includes("interview");
+
+  if (!isTest && !isAssessment && !isInterview) {
+    return null;
+  }
+
+  return (
+    <div className="mt-3.5 rounded-xl border border-[#D9D9D2] bg-[#FAFAF8] p-4 text-xs space-y-3.5">
+      {/* Header with individual status pill */}
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#E3E3DD] pb-2.5">
+        <span className="font-semibold text-sm text-[#101010]">
+          {isTest && "📝 Physical Test Schedule & Publish"}
+          {isAssessment && "🧪 Practical Assessment Schedule & Publish"}
+          {isInterview && "🎥 Interview Schedule & Meeting Link"}
+        </span>
+
+        <span
+          className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
+            isPublished
+              ? "bg-[#E6F4EA] text-[#1B6B3A] border border-[#A8DBB5]"
+              : "bg-[#F1F1EC] text-[#5C5C57] border border-[#E3E3DD]"
+          }`}
+        >
+          {isPublished ? "● Published to Candidate" : "○ Draft (Hidden from Candidate)"}
+        </span>
+      </div>
+
+      {msg && (
+        <div
+          className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
+            msg.error
+              ? "border border-[#F2C4BF] bg-[#FCE9E7] text-[#A8281E]"
+              : "border border-[#A8DBB5] bg-[#E6F4EA] text-[#1B6B3A]"
+          }`}
+        >
+          {msg.text}
+        </div>
+      )}
+
+      {/* Date & Time Picker */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="space-y-1">
+          <label className="block text-[11px] font-medium text-[#5C5C57]">
+            {isTest && "Test Date & Time for this candidate"}
+            {isAssessment && "Due / Submission Date for this candidate (optional)"}
+            {isInterview && "Interview Date & Time for this candidate"}
+          </label>
+          <input
+            type="datetime-local"
+            value={scheduledDate}
+            onChange={(e) => setScheduledDate(e.target.value)}
+            className="min-h-8 w-full rounded-lg border border-[#CFCFC8] bg-white px-2.5 text-xs text-[#101010] focus:border-[#101010] focus:outline-none"
+          />
+        </div>
+
+        {isInterview && (
+          <div className="space-y-1">
+            <label className="block text-[11px] font-medium text-[#5C5C57]">
+              Google Meet Link for this candidate
+            </label>
+            <input
+              type="url"
+              placeholder="https://meet.google.com/xxx-xxxx-xxx"
+              value={meetingUrl}
+              onChange={(e) => setMeetingUrl(e.target.value)}
+              className="min-h-8 w-full rounded-lg border border-[#CFCFC8] bg-white px-2.5 text-xs text-[#101010] placeholder-[#8A8A84] focus:border-[#101010] focus:outline-none"
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Summary of effective venue / details */}
+      {isTest && (
+        <div className="rounded-lg bg-white border border-[#E3E3DD] p-2.5 text-[11px] text-[#5C5C57] space-y-1">
+          <div>
+            <span className="text-[#8A8A84]">Venue:</span>{" "}
+            <strong className="text-[#101010]">
+              {customLocation || roundConfig.location || "Not set in round template"}
+            </strong>
+          </div>
+          {(customMapUrl || roundConfig.mapUrl) && (
+            <div>
+              <span className="text-[#8A8A84]">Maps:</span>{" "}
+              <a
+                href={customMapUrl || roundConfig.mapUrl || "#"}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[#2F4BFF] hover:underline"
+              >
+                {customMapUrl || roundConfig.mapUrl} ↗
+              </a>
+            </div>
+          )}
+          {(customSyllabus || roundConfig.syllabus) && (
+            <div>
+              <span className="text-[#8A8A84]">Syllabus/Guidelines:</span>{" "}
+              <span className="text-[#101010] line-clamp-1">
+                {customSyllabus || roundConfig.syllabus}
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {isAssessment && (
+        <div className="rounded-lg bg-white border border-[#E3E3DD] p-2.5 text-[11px] text-[#5C5C57]">
+          <span className="text-[#8A8A84]">Assessment Brief:</span>{" "}
+          <span className="text-[#101010] line-clamp-2">
+            {customDescription || roundConfig.description || "Not set in round template"}
+          </span>
+        </div>
+      )}
+
+      {/* Collapsible Custom Overrides */}
+      <div>
+        <button
+          type="button"
+          onClick={() => setCustomize(!customize)}
+          className="text-[11px] font-medium text-[#2F4BFF] hover:underline flex items-center gap-1 cursor-pointer"
+        >
+          {customize
+            ? "− Hide custom overrides for this candidate"
+            : "+ Custom override for this candidate (venue / syllabus / brief)"}
+        </button>
+
+        {customize && (
+          <div className="mt-2 space-y-2.5 rounded-lg border border-[#C5D1FA] bg-[#EEF2FF]/40 p-3">
+            <p className="text-[11px] text-[#5C5C57]">
+              Leave blank to automatically use the common round template defaults.
+            </p>
+            {isTest && (
+              <>
+                <div className="space-y-1">
+                  <label className="text-[11px] text-[#5C5C57]">Custom Venue / Location</label>
+                  <input
+                    type="text"
+                    placeholder={`Default: ${roundConfig.location || "None"}`}
+                    value={customLocation}
+                    onChange={(e) => setCustomLocation(e.target.value)}
+                    className="min-h-8 w-full rounded border border-[#CFCFC8] bg-white px-2 text-xs"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[11px] text-[#5C5C57]">Custom Google Maps Link</label>
+                  <input
+                    type="url"
+                    placeholder={`Default: ${roundConfig.mapUrl || "None"}`}
+                    value={customMapUrl}
+                    onChange={(e) => setCustomMapUrl(e.target.value)}
+                    className="min-h-8 w-full rounded border border-[#CFCFC8] bg-white px-2 text-xs"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[11px] text-[#5C5C57]">Custom Syllabus / Instructions</label>
+                  <textarea
+                    rows={2}
+                    placeholder={`Default: ${roundConfig.syllabus || "None"}`}
+                    value={customSyllabus}
+                    onChange={(e) => setCustomSyllabus(e.target.value)}
+                    className="w-full rounded border border-[#CFCFC8] bg-white p-2 text-xs"
+                  />
+                </div>
+              </>
+            )}
+
+            {isAssessment && (
+              <div className="space-y-1">
+                <label className="text-[11px] text-[#5C5C57]">Custom Assessment Brief</label>
+                <textarea
+                  rows={3}
+                  placeholder={`Default: ${roundConfig.description || "None"}`}
+                  value={customDescription}
+                  onChange={(e) => setCustomDescription(e.target.value)}
+                  className="w-full rounded border border-[#CFCFC8] bg-white p-2 text-xs"
+                />
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Publish & Save Buttons */}
+      <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-[#E3E3DD]">
+        <span className="text-[11px] text-[#8A8A84]">
+          {isPublished
+            ? "Candidate can currently see these details in their portal."
+            : "Candidate cannot see these details until you click Publish."}
+        </span>
 
         <div className="flex items-center gap-2">
           <button
             type="button"
             disabled={saving}
             onClick={() => handleSave(false)}
-            className="min-h-8 cursor-pointer rounded-full border border-[#CFCFC8] bg-white px-4 text-xs font-medium text-[#5C5C57] transition-colors hover:border-[#101010] hover:text-[#101010] disabled:opacity-50"
+            className="min-h-7.5 cursor-pointer rounded-full border border-[#CFCFC8] bg-white px-3 text-[11px] font-medium text-[#5C5C57] hover:border-[#101010] hover:text-[#101010] disabled:opacity-50"
           >
             {saving ? "Saving..." : "Save Draft"}
           </button>
@@ -619,15 +843,15 @@ function InterviewSetupCard({
             type="button"
             disabled={saving}
             onClick={() => handleSave(!isPublished)}
-            className={`min-h-8 cursor-pointer rounded-full px-4 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50 ${
+            className={`min-h-7.5 cursor-pointer rounded-full px-3.5 text-[11px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50 ${
               isPublished ? "bg-[#A8281E]" : "bg-[#2F4BFF]"
             }`}
           >
             {saving
               ? "Saving..."
               : isPublished
-                ? "Unpublish"
-                : "Publish to Candidates"}
+                ? "Unpublish from Candidate"
+                : "Publish to Candidate"}
           </button>
         </div>
       </div>
@@ -1646,6 +1870,28 @@ function PositionDetailContent() {
                                   </div>
                                 );
                               })()}
+
+                            {/* Candidate Schedule & Publish Card */}
+                            {round && (
+                              <CandidateRoundScheduleCard
+                                application={app}
+                                round={round}
+                                onApplicationUpdated={(updatedApp) => {
+                                  setPosition((prev) => {
+                                    if (!prev) return prev;
+                                    return {
+                                      ...prev,
+                                      applications: (prev.applications || []).map(
+                                        (a) =>
+                                          a.id === updatedApp.id
+                                            ? updatedApp
+                                            : a,
+                                      ),
+                                    };
+                                  });
+                                }}
+                              />
+                            )}
                           </div>
                         );
                       })}

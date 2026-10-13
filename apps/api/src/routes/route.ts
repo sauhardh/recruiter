@@ -18,6 +18,7 @@ import {
 import { getTrackingApplication } from "../services/tracking/getTracking.js";
 import { submitAssessment } from "../services/tracking/submitAssessment.js";
 import { evaluateCandidate } from "../services/positions/evaluateCandidate.js";
+import { scheduleCandidateRound } from "../services/positions/scheduleCandidateRound.js";
 import { updateRound } from "../services/positions/updateRound.js";
 import { upload } from "../lib/utils.js";
 
@@ -45,6 +46,11 @@ router.post(
   "/applications/:applicationId/evaluate",
   requireAuth,
   evaluateCandidate,
+);
+router.patch(
+  "/applications/:applicationId/rounds/:roundId/schedule",
+  requireAuth,
+  scheduleCandidateRound,
 );
 
 router.get("/apply/:positionId", getApplicationForm);

@@ -180,6 +180,9 @@ model RoundParticipation {
   isPublished Boolean   @default(false)
   publishedAt DateTime?
 
+  // Per-candidate custom overrides (venue, map, syllabus, description)
+  customConfig Json?
+
   // Interview specific fields
   scheduledAt DateTime?
   endsAt      DateTime?
