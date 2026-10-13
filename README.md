@@ -250,58 +250,77 @@ The base URL of the API **as seen from the browser** (not inside Docker):
 
 ### System Architecture
 
+### System Architecture
+
 ```mermaid
-flowchart TD
-    subgraph Client["Browser / Client"]
-        RD["Recruiter Dashboard\nNext.js"]
-        CP["Candidate Portal\n/apply and /track"]
+flowchart LR
+    %% Styles & Shapes
+    classDef client fill:#1e293b,stroke:#38bdf8,stroke-width:2px,color:#f8fafc;
+    classDef frontend fill:#0f172a,stroke:#818cf8,stroke-width:2px,color:#f8fafc;
+    classDef service fill:#111827,stroke:#34d399,stroke-width:2px,color:#f8fafc;
+    classDef database fill:#1e1b4b,stroke:#a78bfa,stroke-width:2px,color:#f8fafc;
+    classDef external fill:#312e81,stroke:#f472b6,stroke-width:2px,stroke-dasharray: 4 4,color:#f8fafc;
+    classDef storage fill:#1e293b,stroke:#fbbf24,stroke-width:2px,color:#f8fafc;
+
+    %% 1. Users / Clients
+    subgraph Clients["Users & Browsers"]
+        R_USER(("Recruiter<br/>(Admin / Hiring)")):::client
+        C_USER(("Candidate<br/>(Applicant)")):::client
     end
 
-    subgraph API["Express API  apps/api"]
-        direction TB
-        AUTH["Auth Service\nGoogle OAuth and Cookie Session"]
-        POS["Positions Service\nCreate Update Announce"]
-        APP["Application Service\nPublic Form and Resume Upload"]
-        EVAL["Evaluation Service\nPass and Fail Rounds"]
-        TRACK["Tracking Service\nToken-gated Candidate Status"]
-        EMAIL["Email Service\nSMTP or Console"]
+    %% 2. Web Layer
+    subgraph WebLayer["Next.js Web Client (apps/web :3000)"]
+        FE_APP["Next.js App Server<br/>• /recruiter/dashboard<br/>• /apply/:positionId<br/>• /track/:token"]:::frontend
     end
 
-    subgraph DB["PostgreSQL via Prisma ORM"]
-        U["User"]
-        P["Position"]
-        C["Candidate"]
-        A["Application"]
-        HR["HiringRound"]
-        RP["RoundParticipation"]
+    %% 3. API & Microservices
+    subgraph APILayer["Express API Gateway & Controllers (apps/api :5000)"]
+        AUTH_SVC["Auth Service<br/>(OAuth & Cookie Session)"]:::service
+        POS_SVC["Position & Round Service<br/>(CRUD & Config)"]:::service
+        APPLY_SVC["Application Service<br/>(Intake & Form Processing)"]:::service
+        EVAL_SVC["Evaluation Service<br/>(Round Pass / Fail & Scoring)"]:::service
+        TRACK_SVC["Tracking Service<br/>(Token Sanitizer & Submission)"]:::service
+        MAIL_SVC["Notification Engine<br/>(Mailer / Templating)"]:::service
     end
 
-    subgraph Ext["External Services"]
-        GOOGLE["Google OAuth 2.0"]
-        SMTP["SMTP Server\nGmail or SendGrid"]
+    %% 4. Data Layer & Storage
+    subgraph DataStorage["Data & Storage Layer"]
+        DB[("PostgreSQL DB<br/>• Users & Positions<br/>• Candidates & Applications<br/>• Rounds & Participations")]:::database
+        LOCAL_UPLOADS[("Local Storage<br/>/uploads/:filename<br/>(Candidate Resumes)")]:::storage
     end
 
-    RD -- "requireAuth cookie" --> AUTH
-    RD --> POS
-    RD --> EVAL
-    CP --> APP
-    CP --> TRACK
+    %% 5. External Providers
+    subgraph CloudServices["External Cloud Providers"]
+        GOOGLE_AUTH{{"Google Cloud Identity<br/>(OAuth 2.0 Provider)"}}:::external
+        SMTP_RELAY{{"SMTP Mail Service<br/>(Gmail / SendGrid / SES)"}}:::external
+    end
 
-    AUTH <-->|OAuth code exchange| GOOGLE
-    POS --> EMAIL
-    EMAIL -->|sends email| SMTP
+    %% Connections & Data Flow
+    R_USER <-->|1. Manage Pipeline / Evaluate| FE_APP
+    C_USER <-->|2. Apply & Track Status| FE_APP
 
-    AUTH --> U
-    POS --> P
-    APP --> C
-    APP --> A
-    EVAL --> RP
-    TRACK --> A
-    TRACK --> RP
+    FE_APP <-->|Cookie Auth & API Calls| AUTH_SVC
+    FE_APP <-->|Create / Update Positions| POS_SVC
+    FE_APP <-->|POST Application + Resume| APPLY_SVC
+    FE_APP <-->|Evaluate & Schedule Candidate| EVAL_SVC
+    FE_APP <-->|GET Status / Submit Test| TRACK_SVC
 
-    P --> HR
-    A --> RP
-    HR --> RP
+    AUTH_SVC <-->|OAuth Code & User Profile| GOOGLE_AUTH
+    AUTH_SVC <-->|Query / Upsert User| DB
+
+    POS_SVC -->|Query / Update Positions| DB
+    POS_SVC -->|Trigger Announcement| MAIL_SVC
+
+    APPLY_SVC -->|1. Save File to Disk| LOCAL_UPLOADS
+    APPLY_SVC -->|2. Create Candidate & Application| DB
+
+    EVAL_SVC -->|Update Round Status & Score| DB
+
+    TRACK_SVC -->|Fetch Sanitized Candidate Results| DB
+    TRACK_SVC -->|Save Code / Submission Link| DB
+
+    MAIL_SVC -->|Dispatch Email Alerts| SMTP_RELAY
+    SMTP_RELAY -.->|Deliver Job & Update Notices| C_USER
 ```
 
 ---
