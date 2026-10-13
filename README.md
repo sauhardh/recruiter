@@ -29,20 +29,19 @@
 
 Recruiter is a **monorepo** (pnpm workspaces) consisting of:
 
-| App | Tech | Purpose |
-|---|---|---|
-| `apps/api` | Node.js · Express 5 · Prisma 7 · PostgreSQL | REST API and business logic |
-| `apps/web` | Next.js 16 · React 19 · Tailwind CSS 4 | Recruiter dashboard and candidate-facing pages |
+| App        | Tech                                        | Purpose                                        |
+| ---------- | ------------------------------------------- | ---------------------------------------------- |
+| `apps/api` | Node.js · Express 5 · Prisma 7 · PostgreSQL | REST API and business logic                    |
+| `apps/web` | Next.js 16 · React 19 · Tailwind CSS 4      | Recruiter dashboard and candidate-facing pages |
 
 **Key capabilities:**
 
 - 🔐 **Google OAuth** — recruiters sign in with their Google account; no passwords stored.
 - 📋 **Position management** — create, draft, open, and close job positions with custom hiring rounds.
-- 📨 **Announcements** — send position-open emails to a list of recipients via SMTP (or log to console locally).
+- 📨 **Announcements** — send position-open emails to a list of recipients via SMTP.
 - 📝 **Public application forms** — candidates apply directly via a shareable link; resume upload included.
-- 🏆 **Multi-round evaluation pipeline** — Screening → Written Test → Practical Assessment → Final Interview (fully customisable).
+- 🏆 **Multi-round evaluation pipeline** — Screening → Written Test → Practical Assessment → Final Interview.
 - 🔗 **Candidate tracking portal** — every applicant gets a unique, token-secured link to check their real-time status, round results, schedules, and meeting links — without ever creating an account.
-- 🤖 **AI resume scoring** *(schema-ready)* — `aiScore` and `aiEvaluation` fields are reserved for future AI ranking integration.
 
 ---
 
@@ -50,10 +49,10 @@ Recruiter is a **monorepo** (pnpm workspaces) consisting of:
 
 ### Prerequisites
 
-| Tool | Version |
-|---|---|
-| Node.js | ≥ 20 |
-| pnpm | ≥ 10.19 |
+| Tool       | Version          |
+| ---------- | ---------------- |
+| Node.js    | ≥ 20             |
+| pnpm       | ≥ 10.19          |
 | PostgreSQL | ≥ 15 (or Docker) |
 
 ---
@@ -107,12 +106,16 @@ cd apps/web && pnpm dev
 
 The Docker Compose stack spins up three services: **PostgreSQL**, **API**, and **Web** — all pre-wired together.
 
-**1. Configure env files** *(required before first run)*
+> **`DATABASE_URL` is handled automatically.**  
+> `docker-compose.yml` hardcodes and injects the correct connection string pointing at the internal `postgres` container — it overrides whatever is (or isn't) in your `.env`. You **never need to set `DATABASE_URL`** when using Docker.
+
+**1. Configure env files** _(required before first run)_
 
 ```bash
 cp apps/api/.env.example apps/api/.env
-# Edit apps/api/.env — fill in GOOGLE_*, SMTP_*, JWT_SECRET
-# DATABASE_URL is automatically overridden by docker-compose to point at the postgres container
+# Fill in ONLY these — DATABASE_URL is NOT required for Docker:
+#   GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_CALLBACK_URL
+#   EMAIL_PROVIDER, SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS
 
 echo "NEXT_PUBLIC_API_URL=http://localhost:5000" > apps/web/.env.local
 ```
@@ -123,7 +126,7 @@ echo "NEXT_PUBLIC_API_URL=http://localhost:5000" > apps/web/.env.local
 docker compose up --build
 ```
 
-**3. Run database migrations** *(first run only)*
+**3. Run database migrations** _(first run only)_
 
 ```bash
 docker compose exec api pnpm exec prisma migrate deploy
@@ -131,11 +134,11 @@ docker compose exec api pnpm exec prisma migrate deploy
 
 **4. Access the app**
 
-| Service | URL |
-|---|---|
-| Web (Recruiter Dashboard) | <http://localhost:3000> |
-| API | <http://localhost:5000> |
-| Health check | <http://localhost:5000/health> |
+| Service                   | URL                            |
+| ------------------------- | ------------------------------ |
+| Web (Recruiter Dashboard) | <http://localhost:3000>        |
+| API                       | <http://localhost:5000>        |
+| Health check              | <http://localhost:5000/health> |
 
 ```bash
 docker compose down        # stop all containers
@@ -158,7 +161,6 @@ FRONTEND_URL=http://localhost:3000
 DATABASE_URL="postgresql://user:password@localhost:5432/recruiter_db?schema=public"
 
 # Authentication (Google OAuth + session cookie)
-JWT_SECRET=super_secret_jwt_key_min_32_characters_long_for_security
 GOOGLE_CLIENT_ID=your_google_client_id.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=your_google_client_secret
 GOOGLE_CALLBACK_URL=http://localhost:5000/auth/google/callback
@@ -187,16 +189,9 @@ NEXT_PUBLIC_API_URL=http://localhost:5000
 
 Format: `postgresql://<USER>:<PASSWORD>@<HOST>:<PORT>/<DB_NAME>?schema=public`
 
+- Docker(Easy): Just run docker.
 - **Local**: Install PostgreSQL, create a database and user, fill in the values.
 - **Hosted**: Providers like [Supabase](https://supabase.com), [Neon](https://neon.tech), or [Railway](https://railway.app) give you a ready-made connection string from their dashboard.
-
-#### `JWT_SECRET`
-
-Generate a secure random string (minimum 32 characters):
-
-```bash
-openssl rand -base64 48
-```
 
 #### `GOOGLE_CLIENT_ID` & `GOOGLE_CLIENT_SECRET`
 
@@ -218,10 +213,10 @@ Must **exactly** match a redirect URI registered in step 4 above.
 
 #### `EMAIL_PROVIDER`
 
-| Value | Effect |
-|---|---|
+| Value     | Effect                                                                     |
+| --------- | -------------------------------------------------------------------------- |
 | `console` | Emails are printed to the API terminal — no real sends. Use for local dev. |
-| `smtp` | Sends real emails using the `SMTP_*` settings below. |
+| `smtp`    | Sends real emails using the `SMTP_*` settings below.                       |
 
 #### `SMTP_*` — Gmail App Password (recommended)
 
@@ -244,10 +239,10 @@ For other providers (SendGrid, Mailgun, Resend), use their SMTP relay credential
 
 The base URL of the API **as seen from the browser** (not inside Docker):
 
-| Environment | Value |
-|---|---|
-| Development | `http://localhost:5000` |
-| Production | `https://your-api-domain.com` |
+| Environment | Value                         |
+| ----------- | ----------------------------- |
+| Development | `http://localhost:5000`       |
+| Production  | `https://your-api-domain.com` |
 
 ---
 
@@ -345,61 +340,6 @@ sequenceDiagram
 
 ---
 
-### Recruiter & Tracking Flow — Sequence Diagram
-
-```mermaid
-sequenceDiagram
-    actor R as Recruiter
-    actor C as Candidate
-    participant FE as Next.js
-    participant API as Express API
-    participant DB as PostgreSQL
-    participant Mail as SMTP
-
-    R->>FE: Create position with rounds
-    FE->>API: POST /positions
-    API->>DB: INSERT Position status DRAFT
-    DB-->>API: position record
-    API-->>FE: position created
-
-    R->>FE: Open position and announce to recipients
-    FE->>API: POST /positions/:id/announce
-    API->>Mail: Send announcement email
-    Mail-->>R: Email delivered
-
-    C->>FE: Opens /apply/:positionId via shared link
-    FE->>API: GET /apply/:positionId
-    API->>DB: SELECT Position
-    DB-->>API: position metadata
-    API-->>FE: position info
-    FE-->>C: Renders application form
-
-    C->>FE: Fills form and uploads resume
-    FE->>API: POST /apply/:positionId multipart form data
-    API->>DB: UPSERT Candidate by email
-    API->>DB: INSERT Application with trackingTokenHash and RoundParticipation PENDING
-    API-->>FE: trackingToken
-    FE-->>C: Application submitted with tracking token
-
-    C->>FE: Opens /track/:token
-    FE->>API: GET /track/:token
-    API->>DB: Hash token and find Application with Rounds and RoundParticipations
-    API->>API: Sanitize - hide unpublished round details per candidate
-    API-->>FE: application, sanitizedRounds, roundResults
-    FE-->>C: Shows pipeline status and any published round info
-
-    R->>FE: Reviews application and clicks Pass
-    FE->>API: POST /applications/:id/evaluate decision PASS
-    API->>DB: RoundParticipation current to PASSED
-    API->>DB: UPSERT next RoundParticipation to PENDING
-    DB-->>API: updated application
-    API-->>FE: next round unlocked
-
-    Note over C,API: Candidate revisits /track/:token and now sees published result and next round details
-```
-
----
-
 ### Overall System — Sequence Diagram
 
 ```mermaid
@@ -481,35 +421,36 @@ sequenceDiagram
 
 ## What Could Be Better
 
-| Area | Issue |
-|---|---|
-| **Authentication security** | Auth relies on a cookie carrying the raw `userId` with no JWT signature or expiry — a leaked cookie remains valid indefinitely. |
-| **Candidate confirmation email** | After applying, candidates only receive a `trackingToken` in the API response. No automatic confirmation email is sent with their tracking link. |
-| **No real RBAC** | `ADMIN` role exists in the schema but no routes enforce admin-only access distinct from `RECRUITER`. |
-| **No pagination** | `GET /candidates` and `GET /positions` return full result sets — will not scale with many records. |
-| **AI scoring is schema-only** | `aiScore` / `aiEvaluation` fields exist on `Application` but no AI pipeline is wired up yet. |
-| **No session expiry** | Sessions last forever — no sliding expiry or forced re-auth after inactivity. |
-| **Local disk resume storage** | Uploaded resumes go to `apps/api/uploads/`. This breaks in multi-instance deployments and is lost on container restarts without a persistent volume. |
-| **Zero test coverage** | No automated tests exist anywhere in the codebase. |
-| **Hidden round seeding side-effect** | Default hiring rounds are silently seeded at application-submission time — a surprising implicit behaviour. |
-| **Unused dependency** | `csv-parse` is installed but no CSV import route is implemented yet. |
+### Authentication security
+
+Right now, Auth relies on a cookie carrying the raw `userId` with no JWT signature or expiry.
+
+A better approach would be to use JWT based session management with expiry and refresh token.
+
+### No real RBAC
+
+Currently Admin, Recruiter access is not distinguished.
+
+I have only focused on Recruiter opens the role and manage hiring process while candidate apply for it as MVP.
+
+### AI scoring is schema-only
+
+Implementation of AI based scoring and ranking during Resume Screening round.
+
+### Local disk resume storage
+
+Uploaded resumes go to `apps/api/uploads/`.
+
+It does not lie behind authentication, so that could be a major flaw.
+
+A better approach will be implementation of authentication for both candidates and recruiter.
 
 ---
 
 ## TODO
 
-- [ ] **Send tracking link email to candidate** after application submission (use existing nodemailer service)
-- [ ] **JWT-signed session cookies** with expiry instead of raw `userId` cookies
 - [ ] **Candidate status change email notifications** — notify on hire or rejection automatically
-- [ ] **Pagination** for `/candidates` and `/positions` endpoints (`?page=&limit=`)
-- [ ] **RBAC enforcement** — admin-only routes for managing all positions and all recruiters
+- [ ] **Signed session cookies with expiry** — replace the plain `userId` cookie with a signed, time-limited token (JWT or opaque session)
 - [ ] **AI resume evaluation** — wire `aiScore` / `aiEvaluation` to an LLM or embedding-based ranking pipeline
 - [ ] **Cloud resume storage** — replace local disk with S3-compatible storage (AWS S3, Cloudflare R2, Supabase Storage)
-- [ ] **CSV bulk candidate import** — implement route using the already-installed `csv-parse` dependency
-- [ ] **Session expiry and refresh flow** — token TTL with re-auth on expiry
-- [ ] **Unit and integration tests** — cover auth, application form, evaluation logic, and tracking sanitization
-- [ ] **Rate limiting** — protect public endpoints (`/apply`, `/track`) against abuse
-- [ ] **Audit log** — record who made what decision and when, for compliance
-- [ ] **Dashboard analytics** — charts: applications per position, round conversion rates, time-to-hire
 - [ ] **Multi-recruiter collaboration** — allow multiple recruiters to co-manage a position
-- [ ] **Docker production hardening** — add HEALTHCHECK, non-root user, and read-only filesystem to Dockerfiles
