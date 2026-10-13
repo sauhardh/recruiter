@@ -17,6 +17,7 @@ function LoginForm() {
       return;
     }
 
+    // Check if already authenticated
     apiFetch("/api/auth/me")
       .then(() => {
         router.replace("/recruiter/dashboard");

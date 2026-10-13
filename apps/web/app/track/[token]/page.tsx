@@ -19,6 +19,8 @@ interface TrackingRound {
     mapUrl?: string | null;
     syllabus?: string | null;
     description?: string | null;
+    meetingDate?: string | null;
+    meetingUrl?: string | null;
     isPublished?: boolean;
     publishedAt?: string | null;
   } | null;
@@ -532,57 +534,108 @@ function TrackingPortalContent() {
                       </p>
                     )}
 
-                    {/* Interview details if scheduled */}
-                    {result?.scheduledAt && (
-                      <div className="mt-4 rounded-xl border border-[#C5D1FA] bg-[#EEF2FF] p-3 text-xs text-[#2F4BFF] space-y-2">
-                        <div className="flex items-center gap-2 font-medium">
-                          <svg
-                            className="h-4 w-4"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth={2}
-                            viewBox="0 0 24 24"
-                          >
-                            <rect
-                              x="3"
-                              y="4"
-                              width="18"
-                              height="18"
-                              rx="2"
-                              ry="2"
-                            />
-                            <line x1="16" y1="2" x2="16" y2="6" />
-                            <line x1="8" y1="2" x2="8" y2="6" />
-                            <line x1="3" y1="10" x2="21" y2="10" />
-                          </svg>
-                          <span>
-                            Scheduled for:{" "}
-                            {new Date(result.scheduledAt).toLocaleString(
-                              "en-US",
-                              {
-                                weekday: "short",
-                                month: "short",
-                                day: "numeric",
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              },
-                            )}{" "}
-                            {result.timeZone && `(${result.timeZone})`}
-                          </span>
-                        </div>
+                    {/* Interview details if scheduled on candidate result or published on round */}
+                    {(() => {
+                      const interviewDate = result?.scheduledAt || round.config?.meetingDate;
+                      const interviewUrl = result?.meetingUrl || round.config?.meetingUrl;
 
-                        {result.meetingUrl && (
-                          <a
-                            href={result.meetingUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex min-h-8 items-center gap-1.5 rounded-full bg-[#2F4BFF] px-3.5 py-1 text-xs font-medium text-white transition-opacity hover:opacity-90"
-                          >
-                            Join Video Meeting →
-                          </a>
-                        )}
-                      </div>
-                    )}
+                      if (interviewDate || interviewUrl) {
+                        return (
+                          <div className="mt-4 rounded-xl border border-[#C5D1FA] bg-[#EEF2FF] p-4 text-xs text-[#2F4BFF] space-y-3">
+                            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#2F4BFF]/15 pb-2">
+                              <span className="font-semibold text-sm text-[#101010] flex items-center gap-1.5">
+                                🎥 Final Interview Schedule
+                              </span>
+                              <span className="rounded-full bg-[#E6F4EA] border border-[#A8DBB5] px-2.5 py-0.5 text-[11px] font-semibold text-[#1B6B3A]">
+                                ✓ Confirmed
+                              </span>
+                            </div>
+
+                            {interviewDate && (
+                              <div className="flex items-center gap-2 font-medium text-[#101010]">
+                                <svg
+                                  className="h-4 w-4 text-[#2F4BFF]"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth={2}
+                                  viewBox="0 0 24 24"
+                                >
+                                  <rect
+                                    x="3"
+                                    y="4"
+                                    width="18"
+                                    height="18"
+                                    rx="2"
+                                    ry="2"
+                                  />
+                                  <line x1="16" y1="2" x2="16" y2="6" />
+                                  <line x1="8" y1="2" x2="8" y2="6" />
+                                  <line x1="3" y1="10" x2="21" y2="10" />
+                                </svg>
+                                <span>
+                                  Date & Time:{" "}
+                                  <strong>
+                                    {new Date(interviewDate).toLocaleString(
+                                      "en-US",
+                                      {
+                                        weekday: "short",
+                                        month: "short",
+                                        day: "numeric",
+                                        year: "numeric",
+                                        hour: "2-digit",
+                                        minute: "2-digit",
+                                      },
+                                    )}
+                                  </strong>
+                                  {result?.timeZone && ` (${result.timeZone})`}
+                                </span>
+                              </div>
+                            )}
+
+                            {interviewUrl && (
+                              <div>
+                                <a
+                                  href={interviewUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex min-h-9 items-center gap-2 rounded-full bg-[#2F4BFF] px-4 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90 shadow-xs"
+                                >
+                                  <svg
+                                    className="h-4 w-4"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth={2}
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"
+                                    />
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"
+                                    />
+                                  </svg>
+                                  Join Google Meet →
+                                </a>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      }
+
+                      if (isCurrent && round.type === "INTERVIEW") {
+                        return (
+                          <div className="mt-3 rounded-xl border border-dashed border-[#CFCFC8] bg-white/70 p-3.5 text-xs text-[#5C5C57]">
+                            ⏳ The interview date and Google Meet link will be scheduled and published here by the hiring team shortly.
+                          </div>
+                        );
+                      }
+
+                      return null;
+                    })()}
 
                     {/* Written Test Details if published */}
                     {round.config &&

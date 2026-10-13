@@ -433,6 +433,213 @@ function AssessmentSetupCard({
   );
 }
 
+function InterviewSetupCard({
+  round,
+  positionId,
+  onRoundUpdated,
+}: {
+  round: HiringRound;
+  positionId: string;
+  onRoundUpdated: (updated: HiringRound) => void;
+}) {
+  const config = (round.config || {}) as {
+    meetingDate?: string;
+    meetingUrl?: string;
+    isPublished?: boolean;
+    publishedAt?: string;
+  };
+
+  const [meetingDate, setMeetingDate] = useState(config.meetingDate || "");
+  const [meetingUrl, setMeetingUrl] = useState(config.meetingUrl || "");
+  const isPublished = Boolean(config.isPublished) || Boolean(round.publishedAt);
+
+  const [saving, setSaving] = useState(false);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    const cfg = (round.config || {}) as {
+      meetingDate?: string;
+      meetingUrl?: string;
+    };
+    setMeetingDate(cfg.meetingDate || "");
+    setMeetingUrl(cfg.meetingUrl || "");
+  }, [round.id, round.config]);
+
+  const handleSave = async (publish: boolean) => {
+    setSaving(true);
+    setSuccessMsg(null);
+    setErrorMsg(null);
+    try {
+      const res = await apiFetch<{ round: HiringRound; message: string }>(
+        `/api/positions/${positionId}/rounds/${round.id}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({
+            meetingDate: meetingDate || null,
+            meetingUrl: meetingUrl.trim() || null,
+            isPublished: publish,
+          }),
+        },
+      );
+      onRoundUpdated(res.round);
+      setSuccessMsg(
+        publish
+          ? "✓ Published! Candidates can now see the interview schedule and join the meeting."
+          : "✓ Draft saved. Interview details are hidden from candidates until published.",
+      );
+      setTimeout(() => setSuccessMsg(null), 5000);
+    } catch (err: unknown) {
+      setErrorMsg(
+        err instanceof Error ? err.message : "Failed to update interview details",
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="rounded-[20px] border border-[#C5D1FA] bg-white p-5 sm:p-6 shadow-xs space-y-4">
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#EDEDE8] pb-3">
+        <div className="flex items-center gap-2.5">
+          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#EEF2FF] text-[#2F4BFF]">
+            <svg
+              className="h-4.5 w-4.5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"
+              />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007z"
+              />
+            </svg>
+          </span>
+          <div>
+            <h4 className="font-semibold text-sm text-[#101010]">
+              Interview Schedule Publication
+            </h4>
+            <p className="text-xs text-[#5C5C57]">
+              Set the interview date and Google Meet link to publish to candidates on their tracking portal.
+            </p>
+          </div>
+        </div>
+
+        {/* Publication Status Pill */}
+        <span
+          className={`rounded-full px-3 py-1 text-xs font-semibold ${
+            isPublished
+              ? "bg-[#E6F4EA] text-[#1B6B3A] border border-[#A8DBB5]"
+              : "bg-[#F1F1EC] text-[#5C5C57] border border-[#E3E3DD]"
+          }`}
+        >
+          {isPublished ? "● Published to Candidates" : "○ Draft (Unpublished)"}
+        </span>
+      </div>
+
+      {successMsg && (
+        <div className="rounded-xl border border-[#A8DBB5] bg-[#E6F4EA] px-3.5 py-2 text-xs font-medium text-[#1B6B3A]">
+          {successMsg}
+        </div>
+      )}
+
+      {errorMsg && (
+        <div className="rounded-xl border border-[#F2C4BF] bg-[#FCE9E7] px-3.5 py-2 text-xs font-medium text-[#A8281E]">
+          {errorMsg}
+        </div>
+      )}
+
+      {/* Inputs */}
+      <div className="grid grid-cols-1 gap-4">
+        {/* Interview Date & Time */}
+        <div className="space-y-1.5">
+          <label className="block text-xs font-medium text-[#5C5C57]">
+            Interview Date & Time <span className="text-[#A8281E]">*</span>
+          </label>
+          <input
+            type="datetime-local"
+            value={meetingDate}
+            onChange={(e) => setMeetingDate(e.target.value)}
+            className="min-h-9 w-full rounded-xl border border-[#CFCFC8] bg-white px-3 text-xs text-[#101010] focus:border-[#101010] focus:outline-none"
+          />
+        </div>
+
+        {/* Google Meet Link */}
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <label className="block text-xs font-medium text-[#5C5C57]">
+              Google Meet Link <span className="text-[#A8281E]">*</span>
+            </label>
+            {meetingUrl && (
+              <a
+                href={meetingUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-mono text-[11px] text-[#2F4BFF] hover:underline"
+              >
+                Test Link ↗
+              </a>
+            )}
+          </div>
+          <input
+            type="url"
+            placeholder="https://meet.google.com/xxx-xxxx-xxx"
+            value={meetingUrl}
+            onChange={(e) => setMeetingUrl(e.target.value)}
+            className="min-h-9 w-full rounded-xl border border-[#CFCFC8] bg-white px-3 text-xs text-[#101010] placeholder-[#8A8A84] focus:border-[#101010] focus:outline-none"
+          />
+          <p className="text-[11px] text-[#8A8A84]">
+            Candidates will see a "Join Meeting" button on their tracking portal once published.
+          </p>
+        </div>
+      </div>
+
+      {/* Buttons */}
+      <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-[#EDEDE8]">
+        <p className="text-[11px] text-[#8A8A84]">
+          Candidates in this stage will see the scheduled date and meeting link once published.
+        </p>
+
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            disabled={saving}
+            onClick={() => handleSave(false)}
+            className="min-h-8 cursor-pointer rounded-full border border-[#CFCFC8] bg-white px-4 text-xs font-medium text-[#5C5C57] transition-colors hover:border-[#101010] hover:text-[#101010] disabled:opacity-50"
+          >
+            {saving ? "Saving..." : "Save Draft"}
+          </button>
+
+          <button
+            type="button"
+            disabled={saving}
+            onClick={() => handleSave(!isPublished)}
+            className={`min-h-8 cursor-pointer rounded-full px-4 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50 ${
+              isPublished
+                ? "bg-[#A8281E]"
+                : "bg-[#2F4BFF]"
+            }`}
+          >
+            {saving
+              ? "Saving..."
+              : isPublished
+                ? "Unpublish"
+                : "Publish to Candidates"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PositionDetailContent() {
   const params = useParams();
   const searchParams = useSearchParams();
@@ -492,14 +699,16 @@ function PositionDetailContent() {
     if (!position) return;
     setUpdatingStatus(true);
     try {
-      const updated = await apiFetch<{ position: Position }>(
+      await apiFetch<{ position: Position }>(
         `/api/positions/${position.id}`,
         {
           method: "PATCH",
           body: JSON.stringify({ status: newStatus }),
         },
       );
-      setPosition(updated.position || { ...position, status: newStatus });
+      // Re-fetch the full position with updated applications and counts
+      const refreshed = await apiFetch<{ position: Position }>(`/api/positions/${position.id}`);
+      setPosition(refreshed.position);
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Failed to update status");
     } finally {
@@ -768,14 +977,9 @@ function PositionDetailContent() {
               </button>
             )}
             {position.status === "CLOSED" && (
-              <button
-                type="button"
-                disabled={updatingStatus}
-                onClick={() => handleStatusChange("OPEN")}
-                className="flex min-h-9 cursor-pointer items-center rounded-full border border-[#CFCFC8] px-4 text-[13px] font-medium transition-colors hover:border-[#101010] disabled:opacity-50"
-              >
-                Reopen position
-              </button>
+              <span className="flex min-h-9 items-center rounded-full border border-[#F2C4BF] bg-[#FCE9E7] px-4 text-[13px] font-medium text-[#A8281E]">
+                Position Closed (Archived History)
+              </span>
             )}
           </div>
         </div>
@@ -1252,6 +1456,25 @@ function PositionDetailContent() {
                     />
                   )}
 
+                  {/* Final Interview Setup */}
+                  {round && (round.type === "INTERVIEW" || round.title.toLowerCase().includes("interview")) && (
+                    <InterviewSetupCard
+                      round={round}
+                      positionId={position.id}
+                      onRoundUpdated={(updatedRound) => {
+                        setPosition((prev) => {
+                          if (!prev) return prev;
+                          return {
+                            ...prev,
+                            rounds: (prev.rounds || []).map((r) =>
+                              r.id === updatedRound.id ? updatedRound : r,
+                            ),
+                          };
+                        });
+                      }}
+                    />
+                  )}
+
                   {stageApplicants.length === 0 ? (
                     <div className="rounded-xl border border-dashed border-[#CFCFC8] bg-white/60 p-8 text-center text-xs text-[#8A8A84]">
                       No candidates currently in this stage.
@@ -1491,6 +1714,31 @@ function PositionDetailContent() {
                         {round.config?.location && (
                           <p className="mt-0.5 text-xs text-[#5C5C57]">
                             📍 Venue: {round.config.location}
+                          </p>
+                        )}
+                        {round.config?.meetingDate && (
+                          <p className="mt-1 text-xs font-medium text-[#2F4BFF]">
+                            🎥 Interview Date:{" "}
+                            {new Date(round.config.meetingDate).toLocaleString("en-US", {
+                              weekday: "short",
+                              month: "short",
+                              day: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </p>
+                        )}
+                        {round.config?.meetingUrl && (
+                          <p className="mt-0.5 text-xs text-[#5C5C57]">
+                            🔗 Meeting:{" "}
+                            <a
+                              href={round.config.meetingUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[#2F4BFF] hover:underline"
+                            >
+                              Google Meet Link ↗
+                            </a>
                           </p>
                         )}
                         {round.config?.isPublished && (

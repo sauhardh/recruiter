@@ -84,11 +84,16 @@ async function updatePosition(req: Request, res: Response) {
         id,
         creatorId: user.userId,
       },
-      select: { id: true },
+      select: { id: true, status: true },
     });
 
     if (!existing) {
       res.status(404).json({ error: "Position not found" });
+      return;
+    }
+
+    if (existing.status === "CLOSED" && status && status !== "CLOSED") {
+      res.status(400).json({ error: "Closed positions cannot be reopened. Please create a new position instead." });
       return;
     }
 
@@ -101,6 +106,19 @@ async function updatePosition(req: Request, res: Response) {
       where: { id },
       data: updateData,
     });
+
+    // When a position is closed, close all remaining ACTIVE applications as REJECTED
+    if (status === "CLOSED") {
+      await prisma.application.updateMany({
+        where: {
+          positionId: id,
+          status: "ACTIVE",
+        },
+        data: {
+          status: "REJECTED",
+        },
+      });
+    }
 
     res.json({ position });
   } catch (error) {

@@ -9,7 +9,7 @@ export default function Hero() {
       </p>
       <h1 className="max-w-[900px] text-5xl  font-semibold leading-[0.98] tracking-[-0.045em] sm:text-7xl lg:text-[84px]">
         <span className="flex">
-          Hiring made smooth<p className="italic font-light">er</p>
+          Hiring made smooth<p className="italic font-light text-red-900">er</p>
         </span>
       </h1>
       <div className="mt-10 flex flex-wrap items-end justify-between gap-x-16 gap-y-8">
@@ -24,12 +24,6 @@ export default function Hero() {
           >
             Recruiter dashboard
             <Arrow />
-          </Link>
-          <Link
-            href="/track"
-            className="flex min-h-[52px] items-center rounded-full border border-[#CFCFC8] px-7 text-base font-medium transition-colors hover:border-[#101010]"
-          >
-            Track your application
           </Link>
         </div>
       </div>

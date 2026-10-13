@@ -9,6 +9,8 @@ export interface WrittenTestConfig {
   mapUrl?: string | null;
   syllabus?: string | null;
   description?: string | null;
+  meetingDate?: string | null;
+  meetingUrl?: string | null;
   isPublished?: boolean;
   publishedAt?: string | null;
 }
