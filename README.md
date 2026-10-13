@@ -427,7 +427,7 @@ Right now, Auth relies on a cookie carrying the raw `userId` with no JWT signatu
 
 A better approach would be to use JWT based session management with expiry and refresh token.
 
-### No real RBAC
+### Role management
 
 Currently Admin, Recruiter access is not distinguished.
 
@@ -450,7 +450,7 @@ A better approach will be implementation of authentication for both candidates a
 ## TODO
 
 - [ ] **Candidate status change email notifications** — notify on hire or rejection automatically
-- [ ] **Signed session cookies with expiry** — replace the plain `userId` cookie with a signed, time-limited token (JWT or opaque session)
+- [ ] **Signed session cookies with expiry** — replace the plain `userId` cookie with a signed, time-limited token
 - [ ] **AI resume evaluation** — wire `aiScore` / `aiEvaluation` to an LLM or embedding-based ranking pipeline
 - [ ] **Cloud resume storage** — replace local disk with S3-compatible storage (AWS S3, Cloudflare R2, Supabase Storage)
 - [ ] **Multi-recruiter collaboration** — allow multiple recruiters to co-manage a position
