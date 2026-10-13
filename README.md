@@ -250,43 +250,7 @@ The base URL of the API **as seen from the browser** (not inside Docker):
 
 ### System Architecture
 
-```mermaid
-flowchart LR
-    %% Custom Styling
-    classDef actor fill:#1e293b,stroke:#38bdf8,stroke-width:2px,color:#f8fafc;
-    classDef web fill:#0f172a,stroke:#818cf8,stroke-width:2px,color:#f8fafc;
-    classDef api fill:#111827,stroke:#34d399,stroke-width:2px,color:#f8fafc;
-    classDef data fill:#1e1b4b,stroke:#a78bfa,stroke-width:2px,color:#f8fafc;
-    classDef ext fill:#312e81,stroke:#f472b6,stroke-width:2px,stroke-dasharray: 4 4,color:#f8fafc;
-
-    %% 1. Users
-    RECRUITER(("1. Recruiter")):::actor
-    CANDIDATE(("1. Candidate")):::actor
-
-    %% 2. Frontend
-    FRONTEND["2. Frontend (Next.js)<br/>• Recruiter Dashboard<br/>• Application Form<br/>• Candidate Tracking Portal"]:::web
-
-    %% 3. Backend
-    BACKEND["3. Backend (Express API)<br/>• Auth & Middleware<br/>• Positions & Rounds<br/>• Intake & Evaluation<br/>• Tracking & Emails"]:::api
-
-    %% 4. Storage & Services
-    DB[("4. PostgreSQL<br/>(Prisma ORM)")]:::data
-    UPLOADS[("4. Local Storage<br/>(/uploads Resumes)")]:::data
-    GOOGLE{{"4. Google OAuth"}}:::ext
-    SMTP{{"4. SMTP Mailer"}}:::ext
-
-    %% Linear Flow: 1 -> 2 -> 3 -> 4
-    RECRUITER -->|"Manage jobs & evaluate"| FRONTEND
-    CANDIDATE -->|"Apply & check status"| FRONTEND
-
-    FRONTEND <-->|"REST API & Session Cookie"| BACKEND
-
-    BACKEND <-->|"Read / Write Data"| DB
-    BACKEND -->|"Save Resumes"| UPLOADS
-    BACKEND <-->|"OAuth verify"| GOOGLE
-    BACKEND -->|"Send Emails"| SMTP
-    SMTP -.->|"Deliver Notification"| CANDIDATE
-```
+![System Architecture Diagram](./system_architecture.jpg)
 
 ---
 
