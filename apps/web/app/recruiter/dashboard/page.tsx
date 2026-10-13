@@ -2,23 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { apiFetch } from "../../../lib/api";
-
-interface Position {
-  id: string;
-  title: string;
-  status: "DRAFT" | "OPEN" | "CLOSED" | "ARCHIVED";
-  _count?: {
-    applications: number;
-  };
-  createdAt: string;
-}
-
-interface DashboardStats {
-  totalPositions: number;
-  openPositions: number;
-  totalApplications: number;
-}
+import { getPositions } from "../../../lib/positions";
+import type { Position, DashboardStats } from "../../../lib/types";
 
 const STATUS_STYLES: Record<Position["status"], string> = {
   OPEN: "bg-[#E6F4EA] text-[#1B6B3A]",
@@ -37,7 +22,7 @@ export default function RecruiterDashboard() {
 
   useEffect(() => {
     // Total position for dashboard
-    apiFetch<{ positions: Position[]; stats: DashboardStats }>("/api/positions")
+    getPositions()
       .then((data) => {
         setPositions(data.positions || []);
         setStats(data.stats || null);

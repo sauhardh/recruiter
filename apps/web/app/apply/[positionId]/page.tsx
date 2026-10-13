@@ -4,20 +4,17 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState, Suspense, useRef } from "react";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-
-interface PositionInfo {
-  id: string;
-  title: string;
-  description?: string;
-  status: string;
-}
+import {
+  getApplicationForm,
+  submitApplicationForm,
+  type ApplicationFormDetails,
+} from "../../../lib/apply";
 
 function ApplyForm() {
   const params = useParams();
   const positionId = params?.positionId as string;
 
-  const [position, setPosition] = useState<PositionInfo | null>(null);
+  const [position, setPosition] = useState<ApplicationFormDetails["position"] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -39,17 +36,16 @@ function ApplyForm() {
 
   useEffect(() => {
     if (!positionId) return;
-    fetch(`${API_BASE}/api/apply/${positionId}`)
-      .then((r) => r.json())
+    getApplicationForm(positionId)
       .then((data) => {
-        if (data.error) {
-          setLoadError(data.error);
-        } else {
-          setPosition(data.position);
-        }
+        setPosition(data.position);
       })
-      .catch(() =>
-        setLoadError("Could not load this application form. Please try again."),
+      .catch((err: unknown) =>
+        setLoadError(
+          err instanceof Error
+            ? err.message
+            : "Could not load this application form. Please try again.",
+        ),
       )
       .finally(() => setLoading(false));
   }, [positionId]);
@@ -78,23 +74,14 @@ function ApplyForm() {
         formData.append("description", description.trim());
       if (resumeFile) formData.append("resume", resumeFile);
 
-      const res = await fetch(`${API_BASE}/api/apply/${positionId}`, {
-        method: "POST",
-        body: formData,
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setSubmitError(data.error || "Failed to submit application.");
-        return;
-      }
-
+      const data = await submitApplicationForm(positionId, formData);
       setTrackingToken(data.trackingToken);
       setSubmitted(true);
-    } catch {
+    } catch (err: unknown) {
       setSubmitError(
-        "Network error. Please check your connection and try again.",
+        err instanceof Error
+          ? err.message
+          : "Network error. Please check your connection and try again.",
       );
     } finally {
       setSubmitting(false);

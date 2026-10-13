@@ -3,15 +3,7 @@
 import { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { apiFetch, API_BASE_URL } from "../../lib/api";
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  avatarUrl: string | null;
-}
+import { getCurrentUser, logoutUser, type User } from "../../lib/auth";
 
 type IconName = "grid" | "briefcase" | "users";
 
@@ -46,7 +38,7 @@ export default function RecruiterLayout({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    apiFetch<{ user: User }>("/api/auth/me")
+    getCurrentUser()
       .then(({ user }) => {
         setUser(user);
         setLoading(false);
@@ -57,10 +49,11 @@ export default function RecruiterLayout({
   }, [router]);
 
   const handleLogout = async () => {
-    await fetch(`${API_BASE_URL}/api/auth/logout`, {
-      method: "POST",
-      credentials: "include",
-    });
+    try {
+      await logoutUser();
+    } catch {
+      // ignore
+    }
     router.replace("/login");
   };
 

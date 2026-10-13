@@ -4,67 +4,13 @@ import { useParams } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-
-interface TrackingRound {
-  id: string;
-  title: string;
-  type: "FORM" | "TEST" | "ASSESSMENT" | "INTERVIEW" | "MANUAL";
-  order: number;
-  instructions?: string | null;
-  externalUrl?: string | null;
-  config?: {
-    testDate?: string | null;
-    location?: string | null;
-    mapUrl?: string | null;
-    syllabus?: string | null;
-    description?: string | null;
-    meetingDate?: string | null;
-    meetingUrl?: string | null;
-    isPublished?: boolean;
-    publishedAt?: string | null;
-  } | null;
-  publishedAt?: string | null;
-  isRequired: boolean;
-}
-
-interface TrackingRoundResult {
-  id: string;
-  roundId: string;
-  status: "PENDING" | "IN_PROGRESS" | "PASSED" | "FAILED" | "SKIPPED";
-  score?: number | null;
-  isPublished: boolean;
-  publishedAt?: string | null;
-  scheduledAt?: string | null;
-  endsAt?: string | null;
-  timeZone?: string | null;
-  meetingUrl?: string | null;
-  completedAt?: string | null;
-  submissionData?: {
-    githubUrl?: string | null;
-    otherUrl?: string | null;
-    submittedAt?: string | null;
-  } | null;
-}
-
-interface TrackingApplication {
-  id: string;
-  status: "ACTIVE" | "HIRED" | "REJECTED" | "WITHDRAWN";
-  appliedAt: string;
-  candidate: {
-    id: string;
-    name: string;
-    email: string;
-  };
-  position: {
-    id: string;
-    title: string;
-    description?: string | null;
-    status: string;
-    rounds: TrackingRound[];
-  };
-  roundResults: TrackingRoundResult[];
-}
+import {
+  getTrackingApplication,
+  submitAssessmentLinks,
+  type TrackingApplication,
+  type TrackingRound,
+  type TrackingRoundResult,
+} from "../../../lib/tracking";
 
 function TrackingPortalContent() {
   const params = useParams();
@@ -89,16 +35,11 @@ function TrackingPortalContent() {
     setAssessmentSubmitting((prev) => ({ ...prev, [roundId]: true }));
     setAssessmentError((prev) => ({ ...prev, [roundId]: null }));
     try {
-      const res = await fetch(`${API_BASE}/api/track/${token}/rounds/${roundId}/submit`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          githubUrl: assessmentGithub[roundId]?.trim() || null,
-          otherUrl: assessmentOther[roundId]?.trim() || null,
-        }),
+      const data = await submitAssessmentLinks(token, roundId, {
+        githubUrl: assessmentGithub[roundId]?.trim() || null,
+        otherUrl: assessmentOther[roundId]?.trim() || null,
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Submission failed");
+
       // Update local round result submissionData
       setApplication((prev) => {
         if (!prev) return prev;
@@ -139,12 +80,8 @@ function TrackingPortalContent() {
   useEffect(() => {
     if (!token) return;
 
-    fetch(`${API_BASE}/api/track/${token}`)
-      .then(async (res) => {
-        const data = await res.json();
-        if (!res.ok) {
-          throw new Error(data.error || "Failed to load application status");
-        }
+    getTrackingApplication(token)
+      .then((data) => {
         setApplication(data.application);
       })
       .catch((err: unknown) => {

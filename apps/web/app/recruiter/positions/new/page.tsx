@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { apiFetch } from "../../../../lib/api";
-import type { Position, PositionStatus } from "../../../../lib/types";
+import { createPosition } from "../../../../lib/positions";
+import type { PositionStatus } from "../../../../lib/types";
 
 export default function NewPositionPage() {
   const router = useRouter();
@@ -33,10 +33,7 @@ export default function NewPositionPage() {
         description: description.trim() || undefined,
       };
 
-      const result = await apiFetch<{ position: Position }>("/api/positions", {
-        method: "POST",
-        body: JSON.stringify(payload),
-      });
+      const result = await createPosition(payload);
 
       if (result.position?.id) {
         router.push(`/recruiter/positions/${result.position.id}`);

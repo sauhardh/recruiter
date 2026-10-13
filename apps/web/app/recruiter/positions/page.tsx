@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState, useMemo } from "react";
-import { apiFetch } from "../../../lib/api";
+import { getPositions } from "../../../lib/positions";
 import type { Position } from "../../../lib/types";
 
 const STATUS_STYLES: Record<Position["status"], string> = {
@@ -24,7 +24,7 @@ export default function PositionsPage() {
   const [activeTab, setActiveTab] = useState<FilterTab>("ALL");
 
   useEffect(() => {
-    apiFetch<{ positions: Position[] }>("/api/positions")
+    getPositions()
       .then((data) => {
         setPositions(data.positions || []);
       })

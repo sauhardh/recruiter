@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
-import { API_BASE_URL, apiFetch } from "../../lib/api";
+import { API_BASE_URL } from "../../lib/api";
+import { getCurrentUser } from "../../lib/auth";
 
 function LoginForm() {
   const router = useRouter();
@@ -18,7 +19,7 @@ function LoginForm() {
     }
 
     // Check if already authenticated
-    apiFetch("/api/auth/me")
+    getCurrentUser()
       .then(() => {
         router.replace("/recruiter/dashboard");
       })

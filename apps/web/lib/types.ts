@@ -1,7 +1,12 @@
 export type PositionStatus = "DRAFT" | "OPEN" | "CLOSED" | "ARCHIVED";
 export type ApplicationStatus = "ACTIVE" | "HIRED" | "REJECTED" | "WITHDRAWN";
 export type RoundType = "FORM" | "TEST" | "ASSESSMENT" | "INTERVIEW" | "MANUAL";
-export type RoundStatus = "PENDING" | "IN_PROGRESS" | "PASSED" | "FAILED" | "SKIPPED";
+export type RoundStatus =
+  | "PENDING"
+  | "IN_PROGRESS"
+  | "PASSED"
+  | "FAILED"
+  | "SKIPPED";
 
 export interface WrittenTestConfig {
   testDate?: string | null;

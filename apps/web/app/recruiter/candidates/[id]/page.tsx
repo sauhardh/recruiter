@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
-import { apiFetch, API_BASE_URL } from "../../../../lib/api";
+import { API_BASE_URL } from "../../../../lib/api";
+import { getCandidateById } from "../../../../lib/candidates";
 import type { Candidate, ApplicationStatus } from "../../../../lib/types";
 
 const STATUS_STYLES: Record<ApplicationStatus, string> = {
@@ -41,7 +42,7 @@ function CandidateDetailContent() {
 
   useEffect(() => {
     if (!id) return;
-    apiFetch<{ candidate: Candidate }>(`/api/candidates/${id}`)
+    getCandidateById(id)
       .then((data) => {
         setCandidate(data.candidate);
       })

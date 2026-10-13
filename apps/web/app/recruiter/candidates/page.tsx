@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState, useMemo } from "react";
-import { apiFetch } from "../../../lib/api";
+import { getCandidates } from "../../../lib/candidates";
 import type { Candidate, ApplicationStatus } from "../../../lib/types";
 
 const STATUS_STYLES: Record<ApplicationStatus, string> = {
@@ -24,7 +24,7 @@ export default function CandidatesPage() {
   const [statusFilter, setStatusFilter] = useState<FilterStatus>("ALL");
 
   useEffect(() => {
-    apiFetch<{ candidates: Candidate[] }>("/api/candidates")
+    getCandidates()
       .then((data) => {
         setCandidates(data.candidates || []);
       })

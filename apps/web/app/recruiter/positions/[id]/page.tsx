@@ -3,7 +3,14 @@
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
-import { apiFetch, API_BASE_URL } from "../../../../lib/api";
+import { API_BASE_URL } from "../../../../lib/api";
+import {
+  getPositionById,
+  updatePosition,
+  announcePosition,
+  updateRound,
+  evaluateCandidate,
+} from "../../../../lib/positions";
 import type {
   Position,
   PositionStatus,
@@ -70,19 +77,13 @@ function WrittenTestSetupCard({
     setSuccessMsg(null);
     setErrorMsg(null);
     try {
-      const res = await apiFetch<{ round: HiringRound; message: string }>(
-        `/api/positions/${positionId}/rounds/${round.id}`,
-        {
-          method: "PATCH",
-          body: JSON.stringify({
-            testDate: testDate || null,
-            location: location.trim() || null,
-            mapUrl: mapUrl.trim() || null,
-            syllabus: syllabus.trim() || null,
-            isPublished: publish,
-          }),
-        },
-      );
+      const res = await updateRound(positionId, round.id, {
+        testDate: testDate || null,
+        location: location.trim() || null,
+        mapUrl: mapUrl.trim() || null,
+        syllabus: syllabus.trim() || null,
+        isPublished: publish,
+      });
       onRoundUpdated(res.round);
       setSuccessMsg(
         publish
@@ -124,7 +125,8 @@ function WrittenTestSetupCard({
               Written Test & Venue Publication
             </h4>
             <p className="text-xs text-[#5C5C57]">
-              Configure test date, venue location, map link, and syllabus to publish on candidate tracking portals.
+              Configure test date, venue location, map link, and syllabus to
+              publish on candidate tracking portals.
             </p>
           </div>
         </div>
@@ -226,7 +228,8 @@ function WrittenTestSetupCard({
       {/* Buttons */}
       <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-[#EDEDE8]">
         <p className="text-[11px] text-[#8A8A84]">
-          Candidates in this stage will see these details on their tracking portal once published.
+          Candidates in this stage will see these details on their tracking
+          portal once published.
         </p>
 
         <div className="flex items-center gap-2">
@@ -244,9 +247,7 @@ function WrittenTestSetupCard({
             disabled={saving}
             onClick={() => handleSave(!isPublished)}
             className={`min-h-8 cursor-pointer rounded-full px-4 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50 ${
-              isPublished
-                ? "bg-[#A8281E]"
-                : "bg-[#2F4BFF]"
+              isPublished ? "bg-[#A8281E]" : "bg-[#2F4BFF]"
             }`}
           >
             {saving
@@ -297,16 +298,10 @@ function AssessmentSetupCard({
     setSuccessMsg(null);
     setErrorMsg(null);
     try {
-      const res = await apiFetch<{ round: HiringRound; message: string }>(
-        `/api/positions/${positionId}/rounds/${round.id}`,
-        {
-          method: "PATCH",
-          body: JSON.stringify({
-            description: description.trim() || null,
-            isPublished: publish,
-          }),
-        },
-      );
+      const res = await updateRound(positionId, round.id, {
+        description: description.trim() || null,
+        isPublished: publish,
+      });
       onRoundUpdated(res.round);
       setSuccessMsg(
         publish
@@ -316,7 +311,9 @@ function AssessmentSetupCard({
       setTimeout(() => setSuccessMsg(null), 5000);
     } catch (err: unknown) {
       setErrorMsg(
-        err instanceof Error ? err.message : "Failed to update assessment details",
+        err instanceof Error
+          ? err.message
+          : "Failed to update assessment details",
       );
     } finally {
       setSaving(false);
@@ -348,7 +345,8 @@ function AssessmentSetupCard({
               Practical Assessment Setup
             </h4>
             <p className="text-xs text-[#5C5C57]">
-              Write an assessment brief for candidates. They will submit their GitHub link and other work links after reviewing it.
+              Write an assessment brief for candidates. They will submit their
+              GitHub link and other work links after reviewing it.
             </p>
           </div>
         </div>
@@ -391,14 +389,16 @@ function AssessmentSetupCard({
           className="w-full rounded-xl border border-[#CFCFC8] bg-white p-3 text-xs text-[#101010] placeholder-[#8A8A84] focus:border-[#101010] focus:outline-none leading-relaxed"
         />
         <p className="text-[11px] text-[#8A8A84]">
-          Candidates will see this brief and be asked to submit a GitHub link and optional other link (demo, portfolio, etc.).
+          Candidates will see this brief and be asked to submit a GitHub link
+          and optional other link (demo, portfolio, etc.).
         </p>
       </div>
 
       {/* Buttons */}
       <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-[#EDEDE8]">
         <p className="text-[11px] text-[#8A8A84]">
-          Candidates in this stage will see the brief and the submission form once published.
+          Candidates in this stage will see the brief and the submission form
+          once published.
         </p>
 
         <div className="flex items-center gap-2">
@@ -416,9 +416,7 @@ function AssessmentSetupCard({
             disabled={saving}
             onClick={() => handleSave(!isPublished)}
             className={`min-h-8 cursor-pointer rounded-full px-4 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50 ${
-              isPublished
-                ? "bg-[#A8281E]"
-                : "bg-[#2F4BFF]"
+              isPublished ? "bg-[#A8281E]" : "bg-[#2F4BFF]"
             }`}
           >
             {saving
@@ -471,17 +469,11 @@ function InterviewSetupCard({
     setSuccessMsg(null);
     setErrorMsg(null);
     try {
-      const res = await apiFetch<{ round: HiringRound; message: string }>(
-        `/api/positions/${positionId}/rounds/${round.id}`,
-        {
-          method: "PATCH",
-          body: JSON.stringify({
-            meetingDate: meetingDate || null,
-            meetingUrl: meetingUrl.trim() || null,
-            isPublished: publish,
-          }),
-        },
-      );
+      const res = await updateRound(positionId, round.id, {
+        meetingDate: meetingDate || null,
+        meetingUrl: meetingUrl.trim() || null,
+        isPublished: publish,
+      });
       onRoundUpdated(res.round);
       setSuccessMsg(
         publish
@@ -491,7 +483,9 @@ function InterviewSetupCard({
       setTimeout(() => setSuccessMsg(null), 5000);
     } catch (err: unknown) {
       setErrorMsg(
-        err instanceof Error ? err.message : "Failed to update interview details",
+        err instanceof Error
+          ? err.message
+          : "Failed to update interview details",
       );
     } finally {
       setSaving(false);
@@ -528,7 +522,8 @@ function InterviewSetupCard({
               Interview Schedule Publication
             </h4>
             <p className="text-xs text-[#5C5C57]">
-              Set the interview date and Google Meet link to publish to candidates on their tracking portal.
+              Set the interview date and Google Meet link to publish to
+              candidates on their tracking portal.
             </p>
           </div>
         </div>
@@ -597,7 +592,8 @@ function InterviewSetupCard({
             className="min-h-9 w-full rounded-xl border border-[#CFCFC8] bg-white px-3 text-xs text-[#101010] placeholder-[#8A8A84] focus:border-[#101010] focus:outline-none"
           />
           <p className="text-[11px] text-[#8A8A84]">
-            Candidates will see a "Join Meeting" button on their tracking portal once published.
+            Candidates will see a "Join Meeting" button on their tracking portal
+            once published.
           </p>
         </div>
       </div>
@@ -605,7 +601,8 @@ function InterviewSetupCard({
       {/* Buttons */}
       <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-[#EDEDE8]">
         <p className="text-[11px] text-[#8A8A84]">
-          Candidates in this stage will see the scheduled date and meeting link once published.
+          Candidates in this stage will see the scheduled date and meeting link
+          once published.
         </p>
 
         <div className="flex items-center gap-2">
@@ -623,9 +620,7 @@ function InterviewSetupCard({
             disabled={saving}
             onClick={() => handleSave(!isPublished)}
             className={`min-h-8 cursor-pointer rounded-full px-4 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50 ${
-              isPublished
-                ? "bg-[#A8281E]"
-                : "bg-[#2F4BFF]"
+              isPublished ? "bg-[#A8281E]" : "bg-[#2F4BFF]"
             }`}
           >
             {saving
@@ -681,7 +676,7 @@ function PositionDetailContent() {
 
   useEffect(() => {
     if (!id) return;
-    apiFetch<{ position: Position }>(`/api/positions/${id}`)
+    getPositionById(id)
       .then((data) => {
         setPosition(data.position);
         if (data.position.announcementSubject)
@@ -699,15 +694,9 @@ function PositionDetailContent() {
     if (!position) return;
     setUpdatingStatus(true);
     try {
-      await apiFetch<{ position: Position }>(
-        `/api/positions/${position.id}`,
-        {
-          method: "PATCH",
-          body: JSON.stringify({ status: newStatus }),
-        },
-      );
+      await updatePosition(position.id, { status: newStatus });
       // Re-fetch the full position with updated applications and counts
-      const refreshed = await apiFetch<{ position: Position }>(`/api/positions/${position.id}`);
+      const refreshed = await getPositionById(position.id);
       setPosition(refreshed.position);
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Failed to update status");
@@ -735,16 +724,13 @@ function PositionDetailContent() {
     setAnnounceError(null);
     setAnnounceSuccess(false);
     try {
-      await apiFetch(`/api/positions/${position.id}/announce`, {
-        method: "POST",
-        body: JSON.stringify({
-          to: announceTo
-            .split(",")
-            .map((e) => e.trim())
-            .filter(Boolean),
-          subject: announceSubject.trim(),
-          body: announceBody.trim(),
-        }),
+      await announcePosition(position.id, {
+        to: announceTo
+          .split(",")
+          .map((e) => e.trim())
+          .filter(Boolean),
+        subject: announceSubject.trim(),
+        body: announceBody.trim(),
       });
       setAnnounceSuccess(true);
       setTimeout(() => setAnnounceSuccess(false), 4000);
@@ -764,13 +750,7 @@ function PositionDetailContent() {
     if (!position) return;
     setEvaluatingId(applicationId);
     try {
-      const res = await apiFetch<{
-        message: string;
-        application: Application;
-      }>(`/api/applications/${applicationId}/evaluate`, {
-        method: "POST",
-        body: JSON.stringify({ decision }),
-      });
+      const res = await evaluateCandidate(applicationId, decision);
 
       setPosition((prev) => {
         if (!prev) return prev;
@@ -783,7 +763,9 @@ function PositionDetailContent() {
         };
       });
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : "Failed to evaluate candidate");
+      alert(
+        err instanceof Error ? err.message : "Failed to evaluate candidate",
+      );
     } finally {
       setEvaluatingId(null);
     }
@@ -792,9 +774,19 @@ function PositionDetailContent() {
   // Helper to determine an applicant's current stage and status
   const getApplicantStage = (app: Application, rounds: HiringRound[]) => {
     if (app.status === "HIRED")
-      return { key: "hired", label: "Hired", isFinal: true, isLastRound: false };
+      return {
+        key: "hired",
+        label: "Hired",
+        isFinal: true,
+        isLastRound: false,
+      };
     if (app.status === "REJECTED")
-      return { key: "rejected", label: "Rejected", isFinal: true, isLastRound: false };
+      return {
+        key: "rejected",
+        label: "Rejected",
+        isFinal: true,
+        isLastRound: false,
+      };
 
     const roundResults = app.roundResults || [];
     const activeResult = roundResults.find(
@@ -817,9 +809,7 @@ function PositionDetailContent() {
     }
 
     const passedRoundIds = new Set(
-      roundResults
-        .filter((r) => r.status === "PASSED")
-        .map((r) => r.roundId),
+      roundResults.filter((r) => r.status === "PASSED").map((r) => r.roundId),
     );
     const nextRound = rounds.find((r) => !passedRoundIds.has(r.id));
     if (nextRound) {
@@ -1067,8 +1057,7 @@ function PositionDetailContent() {
                 Application Form
               </h3>
               <p className="mt-1 text-xs text-[#5C5C57]">
-                Share this link with candidates to start receiving
-                applications.
+                Share this link with candidates to start receiving applications.
               </p>
               <div className="mt-3 space-y-3">
                 <p className="break-all rounded-lg border border-[#E3E3DD] bg-[#F6F6F3] p-2.5 font-mono text-xs text-[#5C5C57]">
@@ -1288,8 +1277,8 @@ function PositionDetailContent() {
               </div>
               {applicants.filter((a) => a.status === "HIRED").length === 0 ? (
                 <div className="rounded-xl border border-dashed border-[#A8DBB5] bg-white/60 p-8 text-center text-xs text-[#1B6B3A]">
-                  No candidates have been hired yet. Pass candidates through
-                  all stages to hire them.
+                  No candidates have been hired yet. Pass candidates through all
+                  stages to hire them.
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -1457,23 +1446,25 @@ function PositionDetailContent() {
                   )}
 
                   {/* Final Interview Setup */}
-                  {round && (round.type === "INTERVIEW" || round.title.toLowerCase().includes("interview")) && (
-                    <InterviewSetupCard
-                      round={round}
-                      positionId={position.id}
-                      onRoundUpdated={(updatedRound) => {
-                        setPosition((prev) => {
-                          if (!prev) return prev;
-                          return {
-                            ...prev,
-                            rounds: (prev.rounds || []).map((r) =>
-                              r.id === updatedRound.id ? updatedRound : r,
-                            ),
-                          };
-                        });
-                      }}
-                    />
-                  )}
+                  {round &&
+                    (round.type === "INTERVIEW" ||
+                      round.title.toLowerCase().includes("interview")) && (
+                      <InterviewSetupCard
+                        round={round}
+                        positionId={position.id}
+                        onRoundUpdated={(updatedRound) => {
+                          setPosition((prev) => {
+                            if (!prev) return prev;
+                            return {
+                              ...prev,
+                              rounds: (prev.rounds || []).map((r) =>
+                                r.id === updatedRound.id ? updatedRound : r,
+                              ),
+                            };
+                          });
+                        }}
+                      />
+                    )}
 
                   {stageApplicants.length === 0 ? (
                     <div className="rounded-xl border border-dashed border-[#CFCFC8] bg-white/60 p-8 text-center text-xs text-[#8A8A84]">
@@ -1506,8 +1497,7 @@ function PositionDetailContent() {
 
                                 <p className="font-mono text-xs text-[#5C5C57]">
                                   {app.candidate?.email || "No email"}
-                                  {rawAnswers.phone &&
-                                    ` · ${rawAnswers.phone}`}
+                                  {rawAnswers.phone && ` · ${rawAnswers.phone}`}
                                 </p>
                                 <p className="text-xs text-[#8A8A84]">
                                   Applied on{" "}
@@ -1560,9 +1550,7 @@ function PositionDetailContent() {
                                 <button
                                   type="button"
                                   disabled={evaluatingId === app.id}
-                                  onClick={() =>
-                                    handleEvaluate(app.id, "PASS")
-                                  }
+                                  onClick={() => handleEvaluate(app.id, "PASS")}
                                   className="inline-flex min-h-8 cursor-pointer items-center rounded-full bg-[#1B6B3A] px-3.5 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
                                 >
                                   {evaluatingId === app.id
@@ -1574,9 +1562,7 @@ function PositionDetailContent() {
                                 <button
                                   type="button"
                                   disabled={evaluatingId === app.id}
-                                  onClick={() =>
-                                    handleEvaluate(app.id, "FAIL")
-                                  }
+                                  onClick={() => handleEvaluate(app.id, "FAIL")}
                                   className="inline-flex min-h-8 cursor-pointer items-center rounded-full border border-[#F2C4BF] bg-[#FCE9E7] px-3.5 text-xs font-medium text-[#A8281E] transition-colors hover:bg-[#F9D6D2] disabled:opacity-50"
                                 >
                                   Reject
@@ -1594,61 +1580,72 @@ function PositionDetailContent() {
                             )}
 
                             {/* Assessment submission links (shown for ASSESSMENT rounds) */}
-                            {round?.type === "ASSESSMENT" && (() => {
-                              const roundResult = (app.roundResults || []).find(
-                                (r) => r.roundId === round.id,
-                              );
-                              const sub = roundResult?.submissionData as
-                                | { githubUrl?: string | null; otherUrl?: string | null; submittedAt?: string | null }
-                                | null
-                                | undefined;
-                              if (!sub?.githubUrl && !sub?.otherUrl) return null;
-                              return (
-                                <div className="mt-3 rounded-xl border border-[#C5D1FA] bg-[#EEF2FF]/60 p-3 text-xs space-y-2">
-                                  <p className="font-semibold text-[#2F4BFF]">
-                                    🧪 Candidate Assessment Submission
-                                  </p>
-                                  {sub.githubUrl && (
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-[#5C5C57] min-w-[70px]">GitHub:</span>
-                                      <a
-                                        href={sub.githubUrl}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="font-mono text-[#2F4BFF] hover:underline truncate"
-                                      >
-                                        {sub.githubUrl} ↗
-                                      </a>
-                                    </div>
-                                  )}
-                                  {sub.otherUrl && (
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-[#5C5C57] min-w-[70px]">Other link:</span>
-                                      <a
-                                        href={sub.otherUrl}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="font-mono text-[#2F4BFF] hover:underline truncate"
-                                      >
-                                        {sub.otherUrl} ↗
-                                      </a>
-                                    </div>
-                                  )}
-                                  {sub.submittedAt && (
-                                    <p className="text-[#8A8A84] font-mono text-[11px]">
-                                      Submitted{" "}
-                                      {new Date(sub.submittedAt).toLocaleString("en-US", {
-                                        month: "short",
-                                        day: "numeric",
-                                        hour: "2-digit",
-                                        minute: "2-digit",
-                                      })}
+                            {round?.type === "ASSESSMENT" &&
+                              (() => {
+                                const roundResult = (
+                                  app.roundResults || []
+                                ).find((r) => r.roundId === round.id);
+                                const sub = roundResult?.submissionData as
+                                  | {
+                                      githubUrl?: string | null;
+                                      otherUrl?: string | null;
+                                      submittedAt?: string | null;
+                                    }
+                                  | null
+                                  | undefined;
+                                if (!sub?.githubUrl && !sub?.otherUrl)
+                                  return null;
+                                return (
+                                  <div className="mt-3 rounded-xl border border-[#C5D1FA] bg-[#EEF2FF]/60 p-3 text-xs space-y-2">
+                                    <p className="font-semibold text-[#2F4BFF]">
+                                      🧪 Candidate Assessment Submission
                                     </p>
-                                  )}
-                                </div>
-                              );
-                            })()}
-
+                                    {sub.githubUrl && (
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-[#5C5C57] min-w-[70px]">
+                                          GitHub:
+                                        </span>
+                                        <a
+                                          href={sub.githubUrl}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="font-mono text-[#2F4BFF] hover:underline truncate"
+                                        >
+                                          {sub.githubUrl} ↗
+                                        </a>
+                                      </div>
+                                    )}
+                                    {sub.otherUrl && (
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-[#5C5C57] min-w-[70px]">
+                                          Other link:
+                                        </span>
+                                        <a
+                                          href={sub.otherUrl}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="font-mono text-[#2F4BFF] hover:underline truncate"
+                                        >
+                                          {sub.otherUrl} ↗
+                                        </a>
+                                      </div>
+                                    )}
+                                    {sub.submittedAt && (
+                                      <p className="text-[#8A8A84] font-mono text-[11px]">
+                                        Submitted{" "}
+                                        {new Date(
+                                          sub.submittedAt,
+                                        ).toLocaleString("en-US", {
+                                          month: "short",
+                                          day: "numeric",
+                                          hour: "2-digit",
+                                          minute: "2-digit",
+                                        })}
+                                      </p>
+                                    )}
+                                  </div>
+                                );
+                              })()}
                           </div>
                         );
                       })}
@@ -1669,8 +1666,8 @@ function PositionDetailContent() {
               Evaluation Pipeline
             </h2>
             <p className="mt-1 text-sm text-[#5C5C57]">
-              Sequential stages configured for this position. Candidates progress
-              through these rounds as you evaluate and pass them.
+              Sequential stages configured for this position. Candidates
+              progress through these rounds as you evaluate and pass them.
             </p>
 
             <div className="mt-6 space-y-4">
@@ -1702,13 +1699,16 @@ function PositionDetailContent() {
                         {round.config?.testDate && (
                           <p className="mt-1 text-xs font-medium text-[#2F4BFF]">
                             📅 Test Date:{" "}
-                            {new Date(round.config.testDate).toLocaleString("en-US", {
-                              weekday: "short",
-                              month: "short",
-                              day: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
+                            {new Date(round.config.testDate).toLocaleString(
+                              "en-US",
+                              {
+                                weekday: "short",
+                                month: "short",
+                                day: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              },
+                            )}
                           </p>
                         )}
                         {round.config?.location && (
@@ -1719,13 +1719,16 @@ function PositionDetailContent() {
                         {round.config?.meetingDate && (
                           <p className="mt-1 text-xs font-medium text-[#2F4BFF]">
                             🎥 Interview Date:{" "}
-                            {new Date(round.config.meetingDate).toLocaleString("en-US", {
-                              weekday: "short",
-                              month: "short",
-                              day: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
+                            {new Date(round.config.meetingDate).toLocaleString(
+                              "en-US",
+                              {
+                                weekday: "short",
+                                month: "short",
+                                day: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              },
+                            )}
                           </p>
                         )}
                         {round.config?.meetingUrl && (
@@ -1751,7 +1754,9 @@ function PositionDetailContent() {
 
                     <div className="flex items-center gap-3">
                       <span className="rounded-full bg-white border border-[#E3E3DD] px-3 py-1 font-mono text-xs font-medium text-[#101010]">
-                        {countInRound} {countInRound === 1 ? "applicant" : "applicants"} currently
+                        {countInRound}{" "}
+                        {countInRound === 1 ? "applicant" : "applicants"}{" "}
+                        currently
                       </span>
                     </div>
                   </div>
