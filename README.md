@@ -1,4 +1,4 @@
-# 🎯 Recruiter — Recruitment Management System
+# 🔵 Recruiter — Recruitment Management System
 
 > A self-hosted, end-to-end hiring pipeline platform for recruiters. Post positions, collect applications, track candidates through multi-round evaluations, and give every candidate a personalised real-time status portal, all from one place.
 
